@@ -1,0 +1,291 @@
+import os
+
+sql_to_append = """
+
+-- ─── ADDED FROM TASK 1 ────────────────────────────────────────────
+
+-- downtime_records table
+CREATE TABLE IF NOT EXISTS downtime_records (
+    id SERIAL PRIMARY KEY,
+    equipment_id INTEGER REFERENCES equipment(id),
+    department_code VARCHAR(50),
+    category VARCHAR(50), -- MECHANICAL, ELECTRICAL, INSTRUMENTATION, PROCESS, RAW_MATERIAL, QUALITY, OPERATIONAL, EXTERNAL, PLANNED
+    description TEXT,
+    started_at TIMESTAMPTZ NOT NULL,
+    ended_at TIMESTAMPTZ,
+    duration_minutes FLOAT,
+    production_loss_tons FLOAT,
+    energy_impact_kwh FLOAT,
+    reported_by VARCHAR(100),
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- shift_reports table
+CREATE TABLE IF NOT EXISTS shift_reports (
+    id SERIAL PRIMARY KEY,
+    shift_date DATE NOT NULL,
+    shift_name VARCHAR(10) NOT NULL, -- A, B, C
+    department_code VARCHAR(50),
+    production_tons FLOAT,
+    energy_kwh FLOAT,
+    sec_kwh_ton FLOAT,
+    downtime_minutes FLOAT,
+    major_alarms INTEGER,
+    trips INTEGER,
+    availability_pct FLOAT,
+    quality_score FLOAT,
+    operator_remarks TEXT,
+    maintenance_remarks TEXT,
+    process_abnormalities TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(shift_date, shift_name, department_code)
+);
+
+-- daily_reports table  
+CREATE TABLE IF NOT EXISTS daily_reports (
+    id SERIAL PRIMARY KEY,
+    report_date DATE NOT NULL UNIQUE,
+    clinker_production_tons FLOAT,
+    cement_production_tons FLOAT,
+    raw_meal_production_tons FLOAT,
+    dispatch_tons FLOAT,
+    availability_pct FLOAT,
+    total_downtime_minutes FLOAT,
+    electrical_energy_kwh FLOAT,
+    thermal_energy_kcal_kg_clinker FLOAT,
+    sec_kwh_ton_clinker FLOAT,
+    sec_kwh_ton_cement FLOAT,
+    fuel_consumption_tons FLOAT,
+    whrs_generation_kwh FLOAT,
+    cpp_generation_kwh FLOAT,
+    grid_import_kwh FLOAT,
+    co2_intensity_kg_ton FLOAT,
+    raw_mill_production_tons FLOAT,
+    coal_mill_production_tons FLOAT,
+    kiln_production_tons FLOAT,
+    kiln_run_factor_pct FLOAT,
+    cement_mill_production_tons FLOAT,
+    free_lime_avg FLOAT,
+    blaine_avg FLOAT,
+    major_breakdowns TEXT,
+    major_alarms TEXT,
+    top_losses TEXT,
+    corrective_actions TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- quality_lab_results table
+CREATE TABLE IF NOT EXISTS quality_lab_results (
+    id SERIAL PRIMARY KEY,
+    sample_time TIMESTAMPTZ NOT NULL,
+    sample_type VARCHAR(50), -- RAW_MEAL, CLINKER, CEMENT, COAL
+    lsf FLOAT, -- Lime Saturation Factor
+    sm FLOAT,  -- Silica Modulus
+    am FLOAT,  -- Alumina Modulus
+    residue_90um_pct FLOAT,
+    residue_212um_pct FLOAT,
+    free_lime_pct FLOAT,
+    c3s_pct FLOAT,
+    c2s_pct FLOAT,
+    c3a_pct FLOAT,
+    c4af_pct FLOAT,
+    blaine_cm2g FLOAT,
+    strength_1d_mpa FLOAT,
+    strength_3d_mpa FLOAT,
+    strength_28d_mpa FLOAT,
+    so3_pct FLOAT,
+    moisture_pct FLOAT,
+    ash_pct FLOAT,
+    volatile_matter_pct FLOAT,
+    gcv_kcal_kg FLOAT,
+    lab_tech VARCHAR(100),
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- operating_windows table (configurable envelopes)
+CREATE TABLE IF NOT EXISTS operating_windows (
+    id SERIAL PRIMARY KEY,
+    equipment_code VARCHAR(50) NOT NULL,
+    parameter VARCHAR(100) NOT NULL,
+    unit VARCHAR(30),
+    op_low FLOAT,
+    op_high FLOAT,
+    target FLOAT,
+    best_achieved FLOAT,
+    source VARCHAR(100) DEFAULT 'engineering_standard', -- oem, dcs, plant_procedure, engineering_standard
+    notes TEXT,
+    updated_by VARCHAR(100),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(equipment_code, parameter)
+);
+
+-- equipment_health_history (time-series)
+CREATE TABLE IF NOT EXISTS equipment_health_history (
+    time TIMESTAMPTZ NOT NULL,
+    equipment_id INTEGER REFERENCES equipment(id),
+    health_score FLOAT,
+    vibration_score FLOAT,
+    thermal_score FLOAT,
+    electrical_score FLOAT,
+    lubrication_score FLOAT,
+    contributing_factors JSONB,
+    status VARCHAR(20) DEFAULT 'NORMAL' -- NORMAL, WARNING, DEGRADING, HIGH_RISK, CRITICAL
+);
+SELECT create_hypertable('equipment_health_history', 'time', if_not_exists => TRUE);
+
+-- anomaly_detections table
+CREATE TABLE IF NOT EXISTS anomaly_detections (
+    id SERIAL PRIMARY KEY,
+    detected_at TIMESTAMPTZ NOT NULL,
+    equipment_id INTEGER REFERENCES equipment(id),
+    sensor_tag VARCHAR(100),
+    department_code VARCHAR(50),
+    anomaly_type VARCHAR(50), -- STATISTICAL, RATE_OF_CHANGE, FROZEN, ENVELOPE, MULTIVARIATE
+    parameter VARCHAR(100),
+    normal_range_low FLOAT,
+    normal_range_high FLOAT,
+    current_value FLOAT,
+    deviation_sigma FLOAT,
+    severity VARCHAR(20) DEFAULT 'MEDIUM', -- LOW, MEDIUM, HIGH, CRITICAL
+    possible_cause TEXT,
+    recommended_action TEXT,
+    acknowledged BOOLEAN DEFAULT FALSE,
+    acknowledged_by VARCHAR(100),
+    acknowledged_at TIMESTAMPTZ,
+    auto_cleared BOOLEAN DEFAULT FALSE,
+    cleared_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_anomaly_dept ON anomaly_detections(department_code, detected_at DESC);
+
+-- rca_results table
+CREATE TABLE IF NOT EXISTS rca_results (
+    id SERIAL PRIMARY KEY,
+    analyzed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deviation_type VARCHAR(100),
+    department_code VARCHAR(50),
+    equipment_id INTEGER REFERENCES equipment(id),
+    symptoms JSONB,
+    causes JSONB,  -- array of {root_cause, probability, evidence, affected_tags, recommended_check}
+    top_cause TEXT,
+    top_probability FLOAT,
+    event_timeline JSONB,
+    status VARCHAR(30) DEFAULT 'OPEN', -- OPEN, INVESTIGATED, RESOLVED
+    resolved_by VARCHAR(100),
+    resolution_notes TEXT
+);
+
+-- event_timeline table
+CREATE TABLE IF NOT EXISTS event_timeline (
+    id SERIAL PRIMARY KEY,
+    event_time TIMESTAMPTZ NOT NULL,
+    event_type VARCHAR(50), -- ALARM, TRIP, SETPOINT_CHANGE, OPERATOR_ACTION, PROCESS_DEVIATION
+    department_code VARCHAR(50),
+    equipment_id INTEGER REFERENCES equipment(id),
+    sensor_tag VARCHAR(100),
+    description TEXT,
+    value_before FLOAT,
+    value_after FLOAT,
+    operator_id INTEGER REFERENCES users(id),
+    is_cause BOOLEAN DEFAULT FALSE,
+    is_effect BOOLEAN DEFAULT FALSE,
+    rca_id INTEGER REFERENCES rca_results(id)
+);
+SELECT create_hypertable('event_timeline', 'event_time', if_not_exists => TRUE);
+
+-- sensor_health table (instrument intelligence)
+CREATE TABLE IF NOT EXISTS sensor_health (
+    time TIMESTAMPTZ NOT NULL,
+    sensor_id INTEGER REFERENCES sensors(id),
+    health_status VARCHAR(30) DEFAULT 'GOOD', -- GOOD, FROZEN, DRIFTING, NOISY, SIGNAL_LOSS, OUT_OF_RANGE
+    frozen_duration_minutes FLOAT,
+    noise_level FLOAT,
+    drift_rate FLOAT,
+    last_good_value FLOAT,
+    flag_reason TEXT
+);
+SELECT create_hypertable('sensor_health', 'time', if_not_exists => TRUE);
+
+-- SEED DATA 
+INSERT INTO plants (name, code, capacity_tpd, description) VALUES ('Main Cement Plant', 'MCP', 3000.0, 'Simulated 3000 TPD Cement Plant');
+
+INSERT INTO areas (plant_id, name, code, description, sort_order) VALUES
+(1, 'Crusher', 'CRUSHER', 'Limestone Crushing', 1),
+(1, 'Raw Mill', 'RAW_MILL', 'Raw Material Grinding', 2),
+(1, 'Coal Mill', 'COAL_MILL', 'Coal Grinding', 3),
+(1, 'Pyroprocessing', 'PYRO', 'Preheater and Kiln', 4),
+(1, 'Cooler', 'COOLER', 'Clinker Cooling', 5),
+(1, 'Clinker Transport', 'CLINKER_TRANSPORT', 'Clinker Transport and Storage', 6),
+(1, 'Cement Mill', 'CEMENT_MILL', 'Cement Grinding', 7),
+(1, 'Packing', 'PACKING', 'Cement Packing and Dispatch', 8),
+(1, 'Waste Heat Recovery', 'WHRS', 'Waste Heat Recovery System', 9),
+(1, 'Captive Power Plant', 'CPP', 'Captive Power Plant', 10),
+(1, 'Electrical', 'ELECTRICAL', 'Main Plant Electrical System', 11);
+
+INSERT INTO departments (area_id, name, code, description) VALUES
+(1, 'Primary Crusher', 'CRUSHER_1', 'Primary Crusher'),
+(2, 'Raw Mill 1', 'RM1', 'Raw Mill 1'),
+(3, 'Coal Mill 1', 'CM1', 'Coal Mill 1'),
+(4, 'Kiln 1', 'KILN1', 'Kiln 1'),
+(4, 'Preheater 1', 'PH1', 'Preheater 1'),
+(5, 'Cooler 1', 'COOLER1', 'Cooler 1'),
+(7, 'Cement Mill 1', 'CMILL1', 'Cement Mill 1'),
+(9, 'WHRS 1', 'WHRS1', 'WHRS 1');
+
+INSERT INTO equipment_types (name, code, category) VALUES
+('Vertical Roller Mill', 'VRM', 'mill'),
+('Rotary Kiln', 'KILN', 'kiln'),
+('Grate Cooler', 'COOLER', 'cooler'),
+('Centrifugal Fan', 'FAN', 'fan'),
+('Bucket Elevator', 'ELEVATOR', 'transport'),
+('Belt Conveyor', 'CONVEYOR', 'transport'),
+('Separator', 'SEPARATOR', 'separator'),
+('Ball Mill', 'BALL_MILL', 'mill'),
+('Preheater Cyclone', 'CYCLONE', 'cyclone');
+
+INSERT INTO equipment (department_id, equipment_type_id, name, code, tag) VALUES
+(2, 1, 'Raw Mill 1 VRM', 'RM1_VRM', 'KAIZEN.RAWMILL1.VRM501'),
+(2, 4, 'Raw Mill 1 Fan', 'RM1_FAN', 'KAIZEN.RAWMILL1.FAN502'),
+(2, 7, 'Raw Mill 1 Separator', 'RM1_SEP', 'KAIZEN.RAWMILL1.SEP503'),
+(4, 2, 'Kiln 1', 'KILN1_MAIN', 'KAIZEN.KILN1.MAIN'),
+(4, 4, 'Kiln ID Fan', 'KILN1_IDFAN', 'KAIZEN.KILN1.IDFAN'),
+(5, 9, 'Preheater Cyclone Stage 1', 'PH1_CYC1', 'KAIZEN.PH1.CYC1'),
+(5, 9, 'Preheater Cyclone Stage 5', 'PH1_CYC5', 'KAIZEN.PH1.CYC5'),
+(6, 3, 'Grate Cooler 1', 'COOLER1_MAIN', 'KAIZEN.COOLER1.MAIN'),
+(6, 4, 'Cooler Exhaust Fan', 'COOLER1_FAN', 'KAIZEN.COOLER1.FAN'),
+(7, 8, 'Cement Mill 1 Ball Mill', 'CM1_MILL', 'KAIZEN.CEMENTMILL1.MILL'),
+(7, 7, 'Cement Mill 1 Separator', 'CM1_SEP', 'KAIZEN.CEMENTMILL1.SEP'),
+(7, 4, 'Cement Mill 1 Fan', 'CM1_FAN', 'KAIZEN.CEMENTMILL1.FAN');
+
+-- Just a sampling of sensors for brevity and realistic structure
+INSERT INTO sensors (equipment_id, name, tag, parameter, unit, min_range, max_range, alarm_low, alarm_high, alarm_low_low, alarm_high_high) VALUES
+(1, 'Mill Motor Power', 'KAIZEN.RAWMILL1.VRM501.POWER', 'power', 'kW', 0, 4000, 500, 3500, 100, 3800),
+(1, 'Mill DP', 'KAIZEN.RAWMILL1.VRM501.MILL.DP_MMWC', 'pressure', 'mmWC', 0, 1000, 400, 800, 300, 900),
+(1, 'Mill Outlet Temp', 'KAIZEN.RAWMILL1.VRM501.TEMP.OUTLET', 'temperature', 'C', 0, 150, 75, 100, 70, 110),
+(4, 'Kiln Main Drive Power', 'KAIZEN.KILN1.MAIN.POWER', 'power', 'kW', 0, 1000, 100, 800, 50, 900),
+(4, 'Kiln Speed', 'KAIZEN.KILN1.MAIN.SPEED', 'speed', 'rpm', 0, 5, 1, 4.5, 0.5, 4.8),
+(4, 'Kiln Burning Zone Temp', 'KAIZEN.KILN1.MAIN.BZT', 'temperature', 'C', 0, 2000, 1380, 1480, 1300, 1550),
+(4, 'Kiln Exit Gas O2', 'KAIZEN.KILN1.MAIN.GAS.O2', 'concentration', '%', 0, 21, 1.5, 4, 1.0, 5.0),
+(4, 'Kiln Exit Gas CO', 'KAIZEN.KILN1.MAIN.GAS.CO', 'concentration', 'ppm', 0, 2000, 0, 500, 0, 800),
+(7, 'Preheater Stage 5 Exit Temp', 'KAIZEN.PH1.CYC5.TEMP.EXIT', 'temperature', 'C', 0, 1200, 800, 900, 750, 950),
+(8, 'Cooler Secondary Air Temp', 'KAIZEN.COOLER1.MAIN.TEMP.SEC_AIR', 'temperature', 'C', 0, 1500, 850, 1100, 800, 1200),
+(8, 'Cooler Undergrate Pressure', 'KAIZEN.COOLER1.MAIN.PRESS.UNDER', 'pressure', 'mmWC', 0, 800, 300, 600, 200, 700),
+(10, 'Cement Mill Motor Power', 'KAIZEN.CEMENTMILL1.MILL.POWER', 'power', 'kW', 0, 5000, 1000, 4500, 500, 4800),
+(10, 'Cement Mill DP', 'KAIZEN.CEMENTMILL1.MILL.DP', 'pressure', 'mmWC', 0, 800, 200, 500, 150, 600),
+(10, 'Cement Mill Outlet Temp', 'KAIZEN.CEMENTMILL1.MILL.TEMP.OUTLET', 'temperature', 'C', 0, 150, 90, 115, 80, 125);
+
+INSERT INTO operating_windows (equipment_code, parameter, unit, op_low, op_high, target, best_achieved) VALUES
+('RM1_VRM', 'Mill DP', 'mmWC', 500, 750, 650, 620),
+('RM1_VRM', 'Outlet Temp', 'C', 80, 95, 85, 82),
+('KILN1_MAIN', 'Speed', 'rpm', 3.0, 4.5, 4.0, 4.2),
+('KILN1_MAIN', 'Burning Zone Temp', 'C', 1380, 1480, 1450, 1460),
+('COOLER1_MAIN', 'Secondary Air Temp', 'C', 900, 1100, 1050, 1080),
+('CM1_MILL', 'Mill DP', 'mmWC', 300, 500, 400, 380);
+"""
+
+path = r"d:\Hackthaon\Scnider\Kaizen Changer for Better\kaizen\database\init.sql"
+with open(path, "a") as f:
+    f.write(sql_to_append)
+
+print("Appended to init.sql")

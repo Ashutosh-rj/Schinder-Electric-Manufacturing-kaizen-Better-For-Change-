@@ -1,0 +1,313 @@
+services:
+  # ══════════════════════════════════════════════════════════════
+  #  INFRASTRUCTURE SERVICES
+  # ══════════════════════════════════════════════════════════════
+
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: kaizen-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-kaizen}
+      POSTGRES_USER: ${POSTGRES_USER:-kaizen}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kaizen_secret}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kaizen} -d ${POSTGRES_DB:-kaizen}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - kaizen-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: kaizen-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kaizen-net
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: kaizen-zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
+    networks:
+      - kaizen-net
+    healthcheck:
+      test: ["CMD-SHELL", "cub zk-ready localhost:2181 10"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kaizen-kafka
+    restart: unless-stopped
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    ports:
+      - "29092:29092"
+    healthcheck:
+      test: ["CMD-SHELL", "cub kafka-ready -b localhost:9092 1 10"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - kaizen-net
+
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: kaizen-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kaizen-net
+
+  # ══════════════════════════════════════════════════════════════
+  #  APPLICATION SERVICES
+  # ══════════════════════════════════════════════════════════════
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: kaizen-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - SECRET_KEY=${SECRET_KEY:-changeme-use-a-long-random-string-in-production}
+      - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
+      - JWT_EXPIRE_MINUTES=${JWT_EXPIRE_MINUTES:-480}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-kaizen}:${POSTGRES_PASSWORD:-kaizen_secret}@postgres:5432/${POSTGRES_DB:-kaizen}
+      - DATABASE_URL_SYNC=postgresql://${POSTGRES_USER:-kaizen}:${POSTGRES_PASSWORD:-kaizen_secret}@postgres:5432/${POSTGRES_DB:-kaizen}
+      - REDIS_URL=redis://redis:6379/0
+      - KAFKA_ENABLED=${KAFKA_ENABLED:-true}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_GROUP_ID=${KAFKA_GROUP_ID:-kaizen-backend}
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_BUCKET_MODELS=${MINIO_BUCKET_MODELS:-kaizen-models}
+      - MINIO_BUCKET_REPORTS=${MINIO_BUCKET_REPORTS:-kaizen-reports}
+      - ML_SERVICE_URL=http://ml-service:8001
+      - ENERGY_COST_PER_KWH=${ENERGY_COST_PER_KWH:-7.5}
+      - FUEL_COST_PER_GJ=${FUEL_COST_PER_GJ:-850.0}
+      - CO2_EMISSION_FACTOR_GRID=${CO2_EMISSION_FACTOR_GRID:-0.82}
+      - CO2_EMISSION_FACTOR_COAL=${CO2_EMISSION_FACTOR_COAL:-95.0}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - backend_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - kaizen-net
+
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: kaizen-ml
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-kaizen}:${POSTGRES_PASSWORD:-kaizen_secret}@postgres:5432/${POSTGRES_DB:-kaizen}
+      - DATABASE_URL_SYNC=postgresql://${POSTGRES_USER:-kaizen}:${POSTGRES_PASSWORD:-kaizen_secret}@postgres:5432/${POSTGRES_DB:-kaizen}
+      - REDIS_URL=redis://redis:6379/0
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MODEL_PATH=/app/models
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./ml-service:/app
+      - ml_models:/app/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - kaizen-net
+
+  simulator:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    container_name: kaizen-simulator
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-kaizen}:${POSTGRES_PASSWORD:-kaizen_secret}@postgres:5432/${POSTGRES_DB:-kaizen}
+      - DATABASE_URL_SYNC=postgresql://${POSTGRES_USER:-kaizen}:${POSTGRES_PASSWORD:-kaizen_secret}@postgres:5432/${POSTGRES_DB:-kaizen}
+      - REDIS_URL=redis://redis:6379/0
+      - KAFKA_ENABLED=${KAFKA_ENABLED:-true}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SIMULATOR_INTERVAL_SECONDS=${SIMULATOR_INTERVAL_SECONDS:-5}
+      - SIMULATOR_SCENARIO=${SIMULATOR_SCENARIO:-normal}
+      - BACKEND_URL=http://backend:8000
+    networks:
+      - kaizen-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:8000}
+        - VITE_WS_BASE_URL=${VITE_WS_BASE_URL:-ws://localhost:8000}
+        - VITE_APP_TITLE=${VITE_APP_TITLE:-KAIZEN — Change for Better}
+    container_name: kaizen-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kaizen-net
+
+  # ══════════════════════════════════════════════════════════════
+  #  MONITORING
+  # ══════════════════════════════════════════════════════════════
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: kaizen-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    networks:
+      - kaizen-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: kaizen-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=kaizen123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3001:3000"
+    networks:
+      - kaizen-net
+
+# ══════════════════════════════════════════════════════════════
+#  VOLUMES
+# ══════════════════════════════════════════════════════════════
+
+volumes:
+  postgres_data:
+  redis_data:
+  kafka_data:
+  zookeeper_data:
+  zookeeper_logs:
+  minio_data:
+  ml_models:
+  backend_logs:
+  prometheus_data:
+  grafana_data:
+
+# ══════════════════════════════════════════════════════════════
+#  NETWORKS
+# ══════════════════════════════════════════════════════════════
+
+networks:
+  kaizen-net:
+    driver: bridge

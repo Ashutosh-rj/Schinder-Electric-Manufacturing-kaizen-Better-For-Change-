@@ -1,0 +1,108 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.bak
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Pytest and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Node / Javascript
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+.pnpm-debug.log
+lerna-debug.log
+dist/
+dist-ssr/
+coverage/
+.next/
+out/
+.nuxt/
+.serverless/
+.nyc_output/
+.eslintcache
+
+# Logs and databases
+*.log
+*.sqlite
+*.sqlite3
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# Typescript
+*.tsbuildinfo
+
+# Docker
+.dockerignore
+
+# Cache
+.cache
+.npm
+.eslintcache
+.stylelintcache
+
+# ML / Data
+*.h5
+*.pb
+*.onnx
+*.pkl
+
+# specific to the project
+temp.txt
