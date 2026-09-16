@@ -21,7 +21,14 @@ from app.api.v1 import (
     rca,
     quality,
     production,
-    anomaly
+    anomaly,
+    kaizen_projects,
+    loss_tree,
+    oee,
+    kaizen_db,
+    opl,
+    standards,
+    verification
 )
 
 api_router = APIRouter()
@@ -48,3 +55,12 @@ api_router.include_router(rca.router, prefix="/rca", tags=["Root Cause Analysis"
 api_router.include_router(quality.router, prefix="/quality", tags=["Quality"])
 api_router.include_router(production.router, prefix="/production", tags=["Production"])
 api_router.include_router(anomaly.router, prefix="/anomaly", tags=["Anomaly Detection"])
+
+# New KAIZEN Intelligence Routes
+api_router.include_router(kaizen_projects.router)
+api_router.include_router(loss_tree.router)
+api_router.include_router(oee.router)
+api_router.include_router(kaizen_db.router)
+api_router.include_router(opl.router)
+api_router.include_router(standards.router)
+api_router.include_router(verification.router)

@@ -3,13 +3,13 @@ import ReactECharts from 'echarts-for-react';
 import { Activity, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 
 const mockEquipments = [
-  { id: 'KLN-901', name: 'Kiln Drive', area: 'Pyro', health: 88, status: 'Normal', risk: 'Vibration normal', last: '2 days ago', next: '28 days' },
-  { id: 'VRM-501', name: 'Raw Mill', area: 'Raw Grinding', health: 84, status: 'Normal', risk: 'Diff pressure slight inc', last: '5 days ago', next: '14 days' },
-  { id: 'CM-1201', name: 'Cement Mill 1', area: 'Cement Grinding', health: 79, status: 'Warning', risk: 'Temp elevated', last: '1 day ago', next: '10 days' },
-  { id: 'CF-1003', name: 'Cooler Fan 3', area: 'Pyro', health: 62, status: 'High Risk', risk: 'Bearing Temp rising 15°C', last: '7 days ago', next: 'Immediate' },
-  { id: 'FAN-1201', name: 'CM Fan 1', area: 'Cement Grinding', health: 68, status: 'Degrading', risk: 'Vibration 5.8 mm/s', last: '3 days ago', next: '3 days' },
-  { id: 'SEP-501', name: 'RM Separator', area: 'Raw Grinding', health: 82, status: 'Normal', risk: 'Normal wear', last: '14 days ago', next: '45 days' },
-  { id: 'CR-401', name: 'Crusher', area: 'Crushing', health: 91, status: 'Normal', risk: 'None', last: '1 day ago', next: '30 days' },
+  { id: 'KLN-901', name: 'Kiln Drive', area: 'Pyro', health: 88, status: 'Normal', risk: 'Vibration normal', last: '2 days ago', next: '28 days', mtbf: '120 days', mttr: '8 hours' },
+  { id: 'VRM-501', name: 'Raw Mill', area: 'Raw Grinding', health: 84, status: 'Normal', risk: 'Diff pressure slight inc', last: '5 days ago', next: '14 days', mtbf: '90 days', mttr: '12 hours' },
+  { id: 'CM-1201', name: 'Cement Mill 1', area: 'Cement Grinding', health: 79, status: 'Warning', risk: 'Temp elevated', last: '1 day ago', next: '10 days', mtbf: '60 days', mttr: '10 hours' },
+  { id: 'CF-1003', name: 'Cooler Fan 3', area: 'Pyro', health: 62, status: 'High Risk', risk: 'Bearing Temp rising 15°C', last: '7 days ago', next: 'Immediate', mtbf: '30 days', mttr: '24 hours' },
+  { id: 'FAN-1201', name: 'CM Fan 1', area: 'Cement Grinding', health: 68, status: 'Degrading', risk: 'Vibration 5.8 mm/s', last: '3 days ago', next: '3 days', mtbf: '45 days', mttr: '6 hours' },
+  { id: 'SEP-501', name: 'RM Separator', area: 'Raw Grinding', health: 82, status: 'Normal', risk: 'Normal wear', last: '14 days ago', next: '45 days', mtbf: '150 days', mttr: '4 hours' },
+  { id: 'CR-401', name: 'Crusher', area: 'Crushing', health: 91, status: 'Normal', risk: 'None', last: '1 day ago', next: '30 days', mtbf: '200 days', mttr: '5 hours' },
 ];
 
 const EquipmentHealth = () => {
@@ -78,6 +78,8 @@ const EquipmentHealth = () => {
                 <th className="px-4 py-2">Health</th>
                 <th className="px-4 py-2">Status</th>
                 <th className="px-4 py-2">Top Risk</th>
+                <th className="px-4 py-2">MTBF</th>
+                <th className="px-4 py-2">MTTR</th>
               </tr>
             </thead>
             <tbody>
@@ -88,6 +90,8 @@ const EquipmentHealth = () => {
                   <td className={`px-4 py-3 font-bold ${getHealthColor(eq.health)}`}>{eq.health}</td>
                   <td className="px-4 py-3">{eq.status}</td>
                   <td className="px-4 py-3 text-gray-400 truncate max-w-[150px]">{eq.risk}</td>
+                  <td className="px-4 py-3 text-gray-400">{eq.mtbf}</td>
+                  <td className="px-4 py-3 text-gray-400">{eq.mttr}</td>
                 </tr>
               ))}
             </tbody>
@@ -124,6 +128,14 @@ const EquipmentHealth = () => {
             <div className="flex justify-between border-b border-gray-800 pb-1">
               <span className="text-gray-400">Next Maint.</span>
               <span>{selectedEq.next}</span>
+            </div>
+            <div className="flex justify-between border-b border-gray-800 pb-1">
+              <span className="text-gray-400">MTBF</span>
+              <span>{selectedEq.mtbf}</span>
+            </div>
+            <div className="flex justify-between border-b border-gray-800 pb-1">
+              <span className="text-gray-400">MTTR</span>
+              <span>{selectedEq.mttr}</span>
             </div>
           </div>
         </div>

@@ -1,209 +1,263 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
-import { Activity, AlertTriangle, CheckCircle, Zap, Factory, BarChart3, TrendingUp, Settings, Wind } from 'lucide-react';
+import { 
+  AlertTriangle, CheckCircle2, Settings, ChevronRight, Zap, Info, ArrowRight, Play, Server, ServerCrash, 
+  Activity, ArrowUpRight, ArrowDownRight, Wind, Component
+} from 'lucide-react';
+import { api } from '../lib/api';
 
 const Overview: React.FC = () => {
-  const [time, setTime] = useState(new Date().toLocaleTimeString());
-  React.useEffect(() => {
-    const timer = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000);
-    return () => clearInterval(timer);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await api.get('/dashboard/overview');
+        setData(res.data);
+      } catch (err) {
+        console.error("Failed to fetch overview data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
   }, []);
 
-  const gaugeOption = {
-    series: [
-      {
-        type: 'gauge',
-        progress: { show: true, width: 18, itemStyle: { color: '#00d4ff' } },
-        axisLine: { lineStyle: { width: 18 } },
-        axisTick: { show: false },
-        splitLine: { length: 15, lineStyle: { width: 2, color: '#999' } },
-        axisLabel: { distance: 25, color: '#999', fontSize: 12 },
-        anchor: { show: true, showAbove: true, size: 24, itemStyle: { borderWidth: 10 } },
-        title: { show: false },
-        detail: { valueAnimation: true, fontSize: 30, offsetCenter: [0, '70%'], color: '#fff', formatter: '{value} TPH' },
-        data: [{ value: 285.3, name: 'Clinker' }]
+  const sparklineOption = (data: number[], color: string) => ({
+    grid: { top: 5, bottom: 5, left: 5, right: 5 },
+    xAxis: { show: false, type: 'category' },
+    yAxis: { show: false, type: 'value', min: 'dataMin' },
+    series: [{
+      data,
+      type: 'line',
+      smooth: true,
+      showSymbol: false,
+      lineStyle: { color, width: 2 },
+      areaStyle: {
+        color: {
+          type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+          colorStops: [{ offset: 0, color: color }, { offset: 1, color: 'transparent' }]
+        },
+        opacity: 0.4
       }
-    ]
-  };
+    }]
+  });
 
-  const pieOption = {
-    tooltip: { trigger: 'item' },
-    series: [
-      {
-        name: 'Energy',
-        type: 'pie',
-        radius: ['40%', '70%'],
-        itemStyle: { borderRadius: 10, borderColor: '#1a2540', borderWidth: 2 },
-        label: { show: false, position: 'center' },
-        emphasis: { label: { show: true, fontSize: 20, fontWeight: 'bold' } },
-        labelLine: { show: false },
-        data: [
-          { value: 18.5, name: 'Raw Mill', itemStyle: { color: '#00d4ff' } },
-          { value: 4.2, name: 'Coal Mill', itemStyle: { color: '#00e676' } },
-          { value: 28.3, name: 'Pyro', itemStyle: { color: '#ffa726' } },
-          { value: 38.5, name: 'Cement Mill', itemStyle: { color: '#ef5350' } }
-        ]
-      }
-    ]
-  };
+  if (loading && !data) {
+    return <div className="p-6 text-[#00e676]">Loading Command Center...</div>;
+  }
+
+  // Safely extract data
+  const clinkerTph = data?.production?.clinker_tph || 0;
+  const cementTph = data?.production?.cement_tph || 0;
+  const totalPower = data?.energy?.total_power_mw || 0;
+  const sec = data?.energy?.sec_kwh_ton_clinker || 0;
+  const whrs = data?.energy?.whrs_generation_mw || 0;
+  const efficiency = data?.production?.efficiency_pct || 0;
+  const activeCritical = data?.alarms?.critical || 0;
+  const activeAlarms = data?.alarms?.total_active || 0;
+  const plantStatus = data?.plant_status || "NORMAL";
+  const potentialSavings = data?.kaizen?.total_potential_saving_today || 0;
+
+  const kpis = [
+    { label: 'CLINKER PROD', value: clinkerTph, unit: 'TPH', trend: '↑ 2.4%', up: true, icon: <Activity size={18} fill="currentColor" opacity={0.8}/>, color: '#00e676', data: [12, 14, 15, 14, 16, 18, 17] },
+    { label: 'CEMENT PROD', value: cementTph, unit: 'TPH', trend: '↑ 1.8%', up: true, icon: <Activity size={18} fill="currentColor" opacity={0.8}/>, color: '#00d4ff', data: [15, 16, 14, 18, 17, 19, 20] },
+    { label: 'TOTAL POWER', value: totalPower, unit: 'MW', trend: '↓ 3.1%', up: false, icon: <Zap size={18} fill="currentColor"/>, color: '#ffa726', data: [20, 19, 21, 18, 17, 18, 16] },
+    { label: 'SPECIFIC ENERGY', value: sec, unit: 'kWh/t', trend: '↓ 4.5%', up: false, icon: <Zap size={18} fill="currentColor"/>, color: '#3b82f6', data: [68, 67, 65, 66, 64, 63, 62] },
+    { label: 'WHRS GEN', value: whrs, unit: 'MW', trend: '↑ 6.7%', up: true, icon: <Wind size={18} fill="currentColor"/>, color: '#00e676', data: [3.8, 3.9, 4.0, 4.1, 4.0, 4.2, 4.3] },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white p-6 relative font-sans">
-      <div className="absolute top-2 right-2 text-[#ffa726] border border-[#ffa726] px-2 py-1 text-xs rounded opacity-70 z-50">
-        [SIMULATED DATA]
-      </div>
-
-      {/* Header Row */}
-      <div className="flex justify-between items-center bg-[#1a2540] p-4 rounded-lg mb-6 shadow-lg">
-        <h1 className="text-xl font-bold tracking-wider">COMMAND CENTER | KAIZEN INTELLIGENCE PLATFORM</h1>
-        <div className="flex gap-6 items-center">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400 text-sm">PLANT STATUS:</span>
-            <span className="bg-[#ffa726] text-black px-3 py-1 rounded font-bold text-sm flex items-center gap-1">
-              <AlertTriangle size={16} /> ATTENTION
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400 text-sm">KAIZEN SCORE:</span>
-            <span className="text-[#00e676] font-bold text-xl">84/100</span>
-          </div>
-          <div className="text-[#00d4ff] font-mono text-xl">{time}</div>
-        </div>
-      </div>
-
-      {/* KPI Strip */}
-      <div className="grid grid-cols-6 gap-4 mb-6">
-        {[
-          { label: 'Clinker Prod', value: '285.3', unit: 'TPH', icon: Factory, color: '#00d4ff' },
-          { label: 'Cement Prod', value: '312.5', unit: 'TPH', icon: Factory, color: '#00e676' },
-          { label: 'Total Power', value: '18.4', unit: 'MW', icon: Zap, color: '#ffa726' },
-          { label: 'SEC', value: '64.2', unit: 'kWh/t', icon: BarChart3, color: '#00d4ff' },
-          { label: 'WHRS', value: '4.2', unit: 'MW', icon: Activity, color: '#00e676' },
-          { label: 'Active Alarms', value: '21', unit: '', icon: AlertTriangle, color: '#ef5350' }
-        ].map((kpi, i) => (
-          <div key={i} className="bg-[#1a2540] p-4 rounded-lg border-l-4" style={{ borderColor: kpi.color }}>
-            <div className="flex justify-between items-start mb-2">
-              <span className="text-gray-400 text-xs uppercase">{kpi.label}</span>
-              <kpi.icon size={16} style={{ color: kpi.color }} />
+    <div className="flex flex-col gap-4 max-w-[1920px] mx-auto pb-4">
+      {/* Top KPIs */}
+      <div className="flex gap-4 h-[94px]">
+        {kpis.map((kpi, i) => (
+          <div key={i} className="flex-1 bg-[#091b24] border border-[#15303f] rounded-xl p-3 flex items-center justify-between min-w-[160px] shadow-sm">
+            <div className="flex flex-col h-full justify-between">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1 rounded-md" style={{ backgroundColor: `${kpi.color}15`, color: kpi.color }}>
+                  {kpi.icon}
+                </div>
+                <div className="text-[9px] text-[#8899aa] font-bold uppercase tracking-wider">{kpi.label}</div>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-[24px] font-bold text-white leading-none tracking-tight">{kpi.value}</span>
+                <span className="text-[11px] font-medium text-[#5a7384]">{kpi.unit}</span>
+              </div>
+              <div className={`text-[10px] font-bold mt-1.5 ${kpi.up ? 'text-[#00e676]' : 'text-[#ffa726]'}`}>
+                {kpi.trend}
+              </div>
             </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold">{kpi.value}</span>
-              <span className="text-sm text-gray-500">{kpi.unit}</span>
+            <div className="w-[60px] h-[45px] ml-1 mt-6">
+              <ReactECharts option={sparklineOption(kpi.data, kpi.color)} style={{ height: '100%', width: '100%' }} />
             </div>
           </div>
         ))}
-      </div>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-12 gap-6 mb-6">
-        {/* Animated Process Flow */}
-        <div className="col-span-8 bg-[#1a2540] p-4 rounded-lg">
-          <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><Settings size={18} /> Plant Process Flow</h2>
-          <div className="flex items-center justify-between overflow-x-auto pb-4 pt-2">
-            {[
-              { name: 'Mine', status: '#00e676', val: '500 TPH', health: 95 },
-              { name: 'Crusher', status: '#00e676', val: '450 TPH', health: 92 },
-              { name: 'Raw Mill', status: '#ffa726', val: '285 TPH', health: 78 },
-              { name: 'Kiln', status: '#00e676', val: '285 TPH', health: 88 },
-              { name: 'Cooler', status: '#00e676', val: '285 TPH', health: 90 },
-              { name: 'Cement Mill', status: '#ef5350', val: '312 TPH', health: 65 },
-              { name: 'Packing', status: '#00e676', val: '310 TPH', health: 98 }
-            ].map((node, i, arr) => (
-              <React.Fragment key={i}>
-                <div className="flex flex-col items-center bg-[#0a0e1a] p-3 rounded border border-gray-700 min-w-[100px]">
-                  <div className="w-3 h-3 rounded-full mb-2 shadow-[0_0_8px] animate-pulse" style={{ backgroundColor: node.status, color: node.status }}></div>
-                  <span className="text-xs font-bold whitespace-nowrap">{node.name}</span>
-                  <span className="text-[10px] text-gray-400 mt-1">{node.val}</span>
-                  <div className="w-full bg-gray-800 h-1 mt-2 rounded">
-                    <div className="h-full rounded" style={{ width: `${node.health}%`, backgroundColor: node.status }}></div>
-                  </div>
-                </div>
-                {i < arr.length - 1 && (
-                  <div className="flex-1 flex items-center justify-center min-w-[30px] px-2 text-gray-500 overflow-hidden">
-                    <span className="animate-[pulse_1s_infinite] text-xl">→</span>
-                  </div>
-                )}
-              </React.Fragment>
-            ))}
-          </div>
+        {/* Efficiency Score */}
+        <div className="w-[160px] bg-[#091b24] border border-[#15303f] rounded-xl p-3 flex items-center justify-between shrink-0 shadow-sm">
+           <div className="flex flex-col h-full justify-between w-full">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="text-[9px] text-[#8899aa] font-bold uppercase tracking-wider">PLANT EFFICIENCY</div>
+              </div>
+              <div className="text-[24px] font-bold text-[#00e676] leading-none mt-1 tracking-tight">{efficiency}%</div>
+              <div className="w-full h-1.5 bg-[#15303f] rounded-full mt-3 overflow-hidden">
+                 <div className="h-full bg-[#00e676]" style={{width: `${efficiency}%`}}></div>
+              </div>
+           </div>
         </div>
 
-        {/* Alerts & Insights */}
-        <div className="col-span-4 flex flex-col gap-6">
-          <div className="bg-[#1a2540] p-4 rounded-lg flex-1">
-            <h2 className="text-lg font-bold mb-3 text-[#ef5350] flex items-center gap-2"><AlertTriangle size={18} /> Critical Alerts</h2>
-            <div className="space-y-3">
-              <div className="bg-[#0a0e1a] p-2 rounded border border-[#ef5350] flex justify-between items-center">
-                <span className="text-sm">CM1 Motor Temp High</span>
-                <span className="bg-[#ef5350] text-xs px-2 py-0.5 rounded">P1</span>
-              </div>
-              <div className="bg-[#0a0e1a] p-2 rounded border border-[#ffa726] flex justify-between items-center">
-                <span className="text-sm">Raw Mill DP Limit</span>
-                <span className="bg-[#ffa726] text-xs px-2 py-0.5 rounded text-black">P2</span>
-              </div>
-              <div className="bg-[#0a0e1a] p-2 rounded border border-[#ffa726] flex justify-between items-center">
-                <span className="text-sm">Kiln CO Elevated</span>
-                <span className="bg-[#ffa726] text-xs px-2 py-0.5 rounded text-black">P2</span>
-              </div>
-            </div>
-          </div>
+        {/* Plant Status & Avoidable Loss */}
+        <div className={`w-[220px] border rounded-xl p-3 flex flex-col justify-between shrink-0 relative overflow-hidden shadow-sm ${plantStatus === 'NORMAL' ? 'bg-[#00e676]/5 border-[#00e676]/30' : 'bg-[#ef5350]/5 border-[#ef5350]/30'}`}>
+           <div className={`absolute bottom-0 left-0 h-[5px] rounded-r-full ${plantStatus === 'NORMAL' ? 'bg-[#00e676]' : 'bg-[#ef5350]'}`} style={{width: '84%'}}></div>
+           <div className="flex items-center justify-between mb-2">
+             <div className={`text-[9px] font-bold uppercase tracking-wider ${plantStatus === 'NORMAL' ? 'text-[#00e676]' : 'text-[#ef5350]'}`}>PLANT STATUS</div>
+             <div className="text-[13px] font-bold text-white">{data?.kaizen_score || 84}<span className="text-[#5a7384] text-[10px] font-medium ml-0.5">/100 Kaizen</span></div>
+           </div>
+           <div className="flex items-center gap-2">
+             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${plantStatus === 'NORMAL' ? 'bg-[#00e676]' : 'bg-[#ef5350]'}`}>
+                {plantStatus === 'NORMAL' ? <CheckCircle2 size={20} className="text-[#091b24]" strokeWidth={3} /> : <AlertTriangle size={20} className="text-[#091b24]" strokeWidth={3} />}
+             </div>
+             <div className="flex flex-col">
+               <span className="text-[13px] font-bold text-white tracking-wide">{plantStatus === 'NORMAL' ? 'Running Stable' : 'Attention Required'}</span>
+               <span className="text-[10px] text-[#8899aa]">Avoidable Loss: <span className="text-[#ffa726] font-bold">₹{potentialSavings}/day</span></span>
+             </div>
+           </div>
         </div>
       </div>
 
-      {/* Dept Grid & Charts */}
-      <div className="grid grid-cols-12 gap-6 mb-6">
-        <div className="col-span-8 bg-[#1a2540] p-4 rounded-lg">
-          <h2 className="text-lg font-bold mb-4">Department Status</h2>
-          <div className="grid grid-cols-4 gap-4">
-            {[
-              { name: 'Mine', status: 'NORMAL', prod: '500', pwr: '1.2', hlt: 95, al: 0 },
-              { name: 'Raw Mill', status: 'ATTENTION', prod: '285.3', pwr: '3.2', hlt: 78, al: 4 },
-              { name: 'Coal Mill', status: 'NORMAL', prod: '25.5', pwr: '0.8', hlt: 92, al: 0 },
-              { name: 'Pyroprocessing', status: 'NORMAL', prod: '285', pwr: '4.5', hlt: 88, al: 2 },
-              { name: 'Clinker Cooler', status: 'NORMAL', prod: '285', pwr: '1.5', hlt: 90, al: 1 },
-              { name: 'Cement Mill', status: 'CRITICAL', prod: '312.5', pwr: '2.8', hlt: 65, al: 8 },
-              { name: 'WHRS', status: 'NORMAL', prod: '4.2', pwr: '-', hlt: 96, al: 0 },
-              { name: 'CPP', status: 'NORMAL', prod: '8.5', pwr: '-', hlt: 94, al: 0 }
-            ].map((d, i) => (
-              <div key={i} className="bg-[#0a0e1a] p-3 rounded border border-gray-800">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-bold text-sm">{d.name}</span>
-                  <div className={`w-2 h-2 rounded-full ${d.status==='NORMAL'?'bg-[#00e676]':d.status==='ATTENTION'?'bg-[#ffa726]':'bg-[#ef5350]'}`}></div>
+      {/* Middle Section */}
+      <div className="flex gap-4">
+        {/* TOP 3 LOSSES */}
+        <div className="flex-[1] flex flex-col gap-4">
+          <div className="bg-gradient-to-br from-[#1a0f14] to-[#0a0508] border border-[#ef5350]/40 rounded-xl p-5 shadow-lg relative overflow-hidden h-[240px]">
+             <div className="absolute top-0 right-0 p-4 opacity-10">
+               <AlertTriangle size={120} className="text-[#ef5350]" />
+             </div>
+             <div className="relative z-10 flex flex-col h-full">
+               <div className="flex items-center gap-2 mb-4">
+                 <div className="w-2 h-2 rounded-full bg-[#ef5350] animate-pulse"></div>
+                 <h2 className="text-[18px] font-extrabold text-[#ef5350] tracking-wider uppercase">TOP #1 LOSS TO FIX NOW</h2>
+               </div>
+               
+               <div className="flex-1 flex flex-col">
+                 <h3 className="text-[24px] font-bold text-white mb-2 leading-tight">Cement Mill 1 Energy Loss</h3>
+                 
+                 <div className="flex items-center gap-6 mb-4 mt-2">
+                   <div className="flex flex-col">
+                     <span className="text-[11px] text-[#8899aa] uppercase font-bold tracking-wider mb-1">Impact</span>
+                     <span className="text-[20px] font-bold text-[#ffa726]">₹42,000<span className="text-[12px] text-[#5a7384] ml-1">/day</span></span>
+                   </div>
+                   <div className="w-[1px] h-8 bg-[#ef5350]/30"></div>
+                   <div className="flex flex-col">
+                     <span className="text-[11px] text-[#8899aa] uppercase font-bold tracking-wider mb-1">Status</span>
+                     <span className="text-[14px] font-bold text-white">SEC +10.8% above target</span>
+                   </div>
+                 </div>
+
+                 <div className="flex items-center gap-2 mt-auto">
+                    <span className="text-[12px] text-[#8899aa]">Root Cause Confidence:</span>
+                    <span className="text-[12px] font-bold text-[#00d4ff]">87% (Fan operating condition)</span>
+                 </div>
+               </div>
+
+               <div className="absolute bottom-4 right-4 flex gap-2">
+                  <button className="bg-transparent border border-[#ef5350] text-[#ef5350] hover:bg-[#ef5350]/10 px-4 py-2 rounded-lg text-xs font-bold transition-colors">
+                    ANALYZE
+                  </button>
+                  <button className="bg-[#ef5350] hover:bg-[#d32f2f] text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1">
+                    CREATE KAIZEN <ArrowRight size={14}/>
+                  </button>
+               </div>
+             </div>
+          </div>
+
+          <div className="bg-[#091b24] border border-[#15303f] rounded-xl p-4 flex-1 shadow-sm">
+             <div className="flex justify-between items-center mb-3">
+                <h3 className="text-[14px] font-bold text-white tracking-wide uppercase">Other Priority Losses</h3>
+             </div>
+             <div className="space-y-3">
+                <div className="bg-[#041116] border border-[#15303f] rounded-lg p-3 flex justify-between items-center">
+                   <div>
+                     <div className="text-[13px] font-bold text-white mb-1">#2 Kiln Thermal Inefficiency</div>
+                     <div className="text-[11px] text-[#8899aa]">Fuel consumption +4.2% above baseline</div>
+                   </div>
+                   <div className="text-right">
+                     <div className="text-[14px] font-bold text-[#ffa726]">₹28,500/day</div>
+                     <button className="text-[10px] text-[#00d4ff] font-medium mt-1 hover:underline">Investigate</button>
+                   </div>
                 </div>
-                <div className="text-xs text-gray-400 flex justify-between"><span>Prod:</span> <span>{d.prod}</span></div>
-                <div className="text-xs text-gray-400 flex justify-between"><span>Pwr:</span> <span>{d.pwr} MW</span></div>
-                <div className="mt-2 w-full bg-gray-800 h-1 rounded"><div className={`h-full rounded ${d.hlt>80?'bg-[#00e676]':d.hlt>70?'bg-[#ffa726]':'bg-[#ef5350]'}`} style={{width:`${d.hlt}%`}}></div></div>
-              </div>
-            ))}
+                <div className="bg-[#041116] border border-[#15303f] rounded-lg p-3 flex justify-between items-center">
+                   <div>
+                     <div className="text-[13px] font-bold text-white mb-1">#3 Raw Mill Vibration Fluctuation</div>
+                     <div className="text-[11px] text-[#8899aa]">Causing minor stoppages (20m total/day)</div>
+                   </div>
+                   <div className="text-right">
+                     <div className="text-[14px] font-bold text-[#ffa726]">₹15,200/day</div>
+                     <button className="text-[10px] text-[#00d4ff] font-medium mt-1 hover:underline">Investigate</button>
+                   </div>
+                </div>
+             </div>
           </div>
         </div>
 
-        <div className="col-span-4 bg-[#1a2540] p-4 rounded-lg flex flex-col">
-          <h2 className="text-lg font-bold mb-2 flex items-center gap-2"><TrendingUp size={18}/> AI Insights</h2>
-          <div className="space-y-2 mb-4">
-            <div className="bg-[#0a0e1a] p-3 rounded border-l-2 border-[#00d4ff]">
-              <div className="text-sm font-bold">Optimize CM1 Fan Speed</div>
-              <div className="text-xs text-[#00e676]">Saving: ₹12,500/day</div>
-            </div>
-            <div className="bg-[#0a0e1a] p-3 rounded border-l-2 border-[#00d4ff]">
-              <div className="text-sm font-bold">Reduce Cooler False Air</div>
-              <div className="text-xs text-[#00e676]">Saving: ₹8,200/day</div>
-            </div>
-            <div className="bg-[#0a0e1a] p-3 rounded border-l-2 border-[#00d4ff]">
-              <div className="text-sm font-bold">Raw Mill Feed Stability</div>
-              <div className="text-xs text-[#00e676]">Yield: +2.5 TPH</div>
-            </div>
-          </div>
-          <div className="flex gap-2 flex-1">
-             <div className="flex-1 bg-[#0a0e1a] rounded p-2">
-                <div className="text-xs text-center text-gray-400">Prod vs Target</div>
-                <ReactECharts option={gaugeOption} style={{ height: '120px' }} />
+        {/* PLANT DIGITAL FLOW */}
+        <div className="flex-[2] bg-[#091b24] border border-[#15303f] rounded-xl p-4 flex flex-col overflow-hidden shadow-sm relative">
+           <div className="flex justify-between items-center mb-4 relative z-20">
+             <div className="flex items-center gap-2">
+               <Component size={18} className="text-[#00d4ff]"/>
+               <h2 className="text-[16px] font-bold text-white leading-tight uppercase">Integrated Plant Digital Flow</h2>
              </div>
-             <div className="flex-1 bg-[#0a0e1a] rounded p-2">
-                <div className="text-xs text-center text-gray-400">Energy Breakdown</div>
-                <ReactECharts option={pieOption} style={{ height: '120px' }} />
+           </div>
+
+           <div className="flex-1 bg-[#041116] rounded-lg border border-[#1c3a4a] p-4 flex flex-col justify-center items-center relative overflow-hidden">
+             
+             {/* Flow Diagram */}
+             <div className="w-full flex items-center justify-between relative px-8 z-10 py-12">
+                {/* Connecting Line */}
+                <div className="absolute top-[35%] left-16 right-16 h-1 bg-[#15303f] -z-10 rounded-full"></div>
+                <div className="absolute top-[35%] left-16 w-3/4 h-1 bg-gradient-to-r from-[#00e676] to-[#ffa726] -z-10 rounded-full"></div>
+
+                {[
+                  { name: 'Mine', val: '500 T', status: 'ok' },
+                  { name: 'Crusher', val: '430 T', status: 'ok' },
+                  { name: 'Raw Mill', val: '265 T', status: 'warn' },
+                  { name: 'Kiln', val: '185 T', status: 'ok' },
+                  { name: 'Cooler', val: '185 T', status: 'ok' },
+                  { name: 'Cement Mill', val: '145 T', status: 'err' },
+                  { name: 'Packing', val: '145 T', status: 'ok' },
+                ].map((node, i) => (
+                  <div key={i} className="flex flex-col items-center group cursor-pointer">
+                    <div className="mb-2 text-[10px] text-[#8899aa] font-bold uppercase">{node.name}</div>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center border-4 border-[#041116] z-10 transition-transform group-hover:scale-110 shadow-lg
+                      ${node.status === 'ok' ? 'bg-[#00e676]' : node.status === 'warn' ? 'bg-[#ffa726]' : 'bg-[#ef5350]'}
+                    `}>
+                      {node.status === 'ok' && <CheckCircle2 size={24} className="text-[#041116]" />}
+                      {node.status === 'warn' && <AlertTriangle size={20} className="text-[#041116]" />}
+                      {node.status === 'err' && <AlertTriangle size={20} className="text-[#041116]" />}
+                    </div>
+                    <div className="mt-2 text-[11px] font-bold text-white bg-[#091b24] px-2 py-1 rounded border border-[#15303f]">{node.val}</div>
+                    
+                    {node.status === 'err' && (
+                      <div className="absolute -bottom-8 bg-[#ef5350]/10 border border-[#ef5350]/30 px-2 py-1 rounded text-[#ef5350] text-[9px] font-bold whitespace-nowrap">
+                        Energy Loss Detected
+                      </div>
+                    )}
+                  </div>
+                ))}
              </div>
-          </div>
+             
+             {/* Power Layer beneath */}
+             <div className="w-full mt-auto pt-4 border-t border-[#1c3a4a] flex justify-center gap-12 text-[11px] text-[#5a7384]">
+               <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#00e676]"></div> WHRS: 4.2 MW</div>
+               <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#3b82f6]"></div> GRID: 5.7 MW</div>
+               <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#ffa726]"></div> CPP: 8.5 MW</div>
+             </div>
+
+           </div>
         </div>
       </div>
     </div>

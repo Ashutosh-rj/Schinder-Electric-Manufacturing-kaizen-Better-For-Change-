@@ -31,13 +31,13 @@ async def _process_message(data: dict):
         # Write to Redis for latest values (fast path)
         try:
             import redis.asyncio as redis
-            r = redis.from_url(settings.REDIS_URL)
+            r = redis.from_url(settings.REDIS_URL, decode_responses=True)
             readings = data.get("readings", [])
             pipe = r.pipeline()
             for reading in readings:
                 tag = reading.get("tag", "")
                 if tag:
-                    pipe.setex(f"sensor:{tag}", 30, json.dumps(reading))
+                    pipe.setex(f"sensor:{tag}", 60, json.dumps(reading))
             await pipe.execute()
             await r.aclose()
         except Exception as e:

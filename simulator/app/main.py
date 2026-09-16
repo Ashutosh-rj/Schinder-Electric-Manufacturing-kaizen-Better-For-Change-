@@ -9,55 +9,75 @@ from app.publisher.redis_publisher import RedisPublisher
 
 logger = structlog.get_logger()
 
-async def report_scenario(client, current_scenario):
+
+async def get_scenario_from_redis(redis_pub: "RedisPublisher") -> str:
+    """Poll Redis for the active scenario set by the backend API."""
     try:
-        await client.post(settings.SCENARIO_API_URL, json={"scenario": current_scenario})
+        import redis.asyncio as redis_lib
+        r = redis_lib.from_url(settings.REDIS_URL, decode_responses=True)
+        val = await r.get("simulator:scenario")
+        await r.aclose()
+        return val or "normal"
     except Exception:
-        pass # Ignore API errors
+        return "normal"
+
 
 async def main():
     logger.info("Starting Simulator")
-    
+
     kafka_pub = KafkaPublisher()
     await kafka_pub.connect()
-    
+
     redis_pub = RedisPublisher()
-    
-    current_scenario_name = "normal"
+
+    current_scenario_name = settings.SIMULATOR_SCENARIO or "normal"
     scenario = get_scenario(current_scenario_name)
-    
+
     client = httpx.AsyncClient()
-    last_report_time = datetime.datetime.min
-    
+
     try:
         while True:
-            # Here we could poll a config file or API to change scenario dynamically
             now = datetime.datetime.utcnow()
-            
+
+            # Poll Redis for scenario change every cycle
+            try:
+                redis_scenario = await get_scenario_from_redis(redis_pub)
+                if redis_scenario != current_scenario_name:
+                    logger.info(
+                        "Scenario changed",
+                        old=current_scenario_name,
+                        new=redis_scenario,
+                    )
+                    current_scenario_name = redis_scenario
+                    scenario = get_scenario(current_scenario_name)
+            except Exception as e:
+                logger.warning("Failed to poll scenario from Redis", error=str(e))
+
             readings = scenario.step()
-            
+
             payload = {
                 "timestamp": now.isoformat() + "Z",
                 "scenario": current_scenario_name,
-                "readings": readings
+                "readings": readings,
             }
-            
+
             await kafka_pub.publish(payload)
             redis_pub.publish(payload)
-            
-            logger.info("Published readings", scenario=current_scenario_name, count=len(readings))
-            
-            if (now - last_report_time).total_seconds() >= 60:
-                await report_scenario(client, current_scenario_name)
-                last_report_time = now
-                
+
+            logger.info(
+                "Published readings",
+                scenario=current_scenario_name,
+                count=len(readings),
+            )
+
             await asyncio.sleep(settings.SIMULATOR_INTERVAL_SECONDS)
-            
+
     except asyncio.CancelledError:
         pass
     finally:
         await kafka_pub.disconnect()
         await client.aclose()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
