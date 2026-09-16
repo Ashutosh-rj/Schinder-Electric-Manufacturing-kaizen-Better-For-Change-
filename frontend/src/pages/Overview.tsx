@@ -144,23 +144,23 @@ const Overview: React.FC = () => {
                </div>
                
                <div className="flex-1 flex flex-col">
-                 <h3 className="text-[24px] font-bold text-white mb-2 leading-tight">Cement Mill 1 Energy Loss</h3>
+                 <h3 className="text-[24px] font-bold text-white mb-2 leading-tight">{data?.kaizen?.top_opportunity?.title || 'No major losses detected'}</h3>
                  
                  <div className="flex items-center gap-6 mb-4 mt-2">
                    <div className="flex flex-col">
                      <span className="text-[11px] text-[#8899aa] uppercase font-bold tracking-wider mb-1">Impact</span>
-                     <span className="text-[20px] font-bold text-[#ffa726]">₹42,000<span className="text-[12px] text-[#5a7384] ml-1">/day</span></span>
+                     <span className="text-[20px] font-bold text-[#ffa726]">₹{data?.kaizen?.top_opportunity?.saving_kwh_day ? (data.kaizen.top_opportunity.saving_kwh_day * 7.5).toLocaleString() : '0'}<span className="text-[12px] text-[#5a7384] ml-1">/day</span></span>
                    </div>
                    <div className="w-[1px] h-8 bg-[#ef5350]/30"></div>
                    <div className="flex flex-col">
                      <span className="text-[11px] text-[#8899aa] uppercase font-bold tracking-wider mb-1">Status</span>
-                     <span className="text-[14px] font-bold text-white">SEC +10.8% above target</span>
+                     <span className="text-[14px] font-bold text-white">Loss detected by Kaizen worker</span>
                    </div>
                  </div>
 
                  <div className="flex items-center gap-2 mt-auto">
-                    <span className="text-[12px] text-[#8899aa]">Root Cause Confidence:</span>
-                    <span className="text-[12px] font-bold text-[#00d4ff]">87% (Fan operating condition)</span>
+                    <span className="text-[12px] text-[#8899aa]">Priority:</span>
+                    <span className="text-[12px] font-bold text-[#00d4ff]">{data?.kaizen?.top_opportunity?.priority || 'LOW'}</span>
                  </div>
                </div>
 
@@ -182,22 +182,12 @@ const Overview: React.FC = () => {
              <div className="space-y-3">
                 <div className="bg-[#041116] border border-[#15303f] rounded-lg p-3 flex justify-between items-center">
                    <div>
-                     <div className="text-[13px] font-bold text-white mb-1">#2 Kiln Thermal Inefficiency</div>
-                     <div className="text-[11px] text-[#8899aa]">Fuel consumption +4.2% above baseline</div>
+                     <div className="text-[13px] font-bold text-white mb-1">Active Opportunities: {data?.kaizen?.open_opportunities || 0}</div>
+                     <div className="text-[11px] text-[#8899aa]">Total Potential Savings</div>
                    </div>
                    <div className="text-right">
-                     <div className="text-[14px] font-bold text-[#ffa726]">₹28,500/day</div>
-                     <button className="text-[10px] text-[#00d4ff] font-medium mt-1 hover:underline">Investigate</button>
-                   </div>
-                </div>
-                <div className="bg-[#041116] border border-[#15303f] rounded-lg p-3 flex justify-between items-center">
-                   <div>
-                     <div className="text-[13px] font-bold text-white mb-1">#3 Raw Mill Vibration Fluctuation</div>
-                     <div className="text-[11px] text-[#8899aa]">Causing minor stoppages (20m total/day)</div>
-                   </div>
-                   <div className="text-right">
-                     <div className="text-[14px] font-bold text-[#ffa726]">₹15,200/day</div>
-                     <button className="text-[10px] text-[#00d4ff] font-medium mt-1 hover:underline">Investigate</button>
+                     <div className="text-[14px] font-bold text-[#ffa726]">₹{data?.kaizen?.total_potential_saving_today ? data.kaizen.total_potential_saving_today.toLocaleString() : '0'}/day</div>
+                     <a href="/kaizen" className="text-[10px] text-[#00d4ff] font-medium mt-1 hover:underline">View All</a>
                    </div>
                 </div>
              </div>
@@ -221,40 +211,42 @@ const Overview: React.FC = () => {
                 <div className="absolute top-[35%] left-16 right-16 h-1 bg-[#15303f] -z-10 rounded-full"></div>
                 <div className="absolute top-[35%] left-16 w-3/4 h-1 bg-gradient-to-r from-[#00e676] to-[#ffa726] -z-10 rounded-full"></div>
 
-                {[
-                  { name: 'Mine', val: '500 T', status: 'ok' },
-                  { name: 'Crusher', val: '430 T', status: 'ok' },
-                  { name: 'Raw Mill', val: '265 T', status: 'warn' },
-                  { name: 'Kiln', val: '185 T', status: 'ok' },
-                  { name: 'Cooler', val: '185 T', status: 'ok' },
-                  { name: 'Cement Mill', val: '145 T', status: 'err' },
-                  { name: 'Packing', val: '145 T', status: 'ok' },
-                ].map((node, i) => (
+                {(data?.departments || [
+                  { name: 'Mine', production_tph: 500, status: 'NORMAL' },
+                  { name: 'Crusher', production_tph: 430, status: 'NORMAL' },
+                  { name: 'Raw Mill', production_tph: 265, status: 'ATTENTION' },
+                  { name: 'Kiln', production_tph: 185, status: 'NORMAL' },
+                  { name: 'Cooler', production_tph: 185, status: 'NORMAL' },
+                  { name: 'Cement Mill', production_tph: 145, status: 'CRITICAL' },
+                  { name: 'Packing', production_tph: 145, status: 'NORMAL' },
+                ]).map((node: any, i: number) => {
+                  const statusLabel = node.status === 'NORMAL' ? 'ok' : node.status === 'ATTENTION' ? 'warn' : 'err';
+                  return (
                   <div key={i} className="flex flex-col items-center group cursor-pointer">
                     <div className="mb-2 text-[10px] text-[#8899aa] font-bold uppercase">{node.name}</div>
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center border-4 border-[#041116] z-10 transition-transform group-hover:scale-110 shadow-lg
-                      ${node.status === 'ok' ? 'bg-[#00e676]' : node.status === 'warn' ? 'bg-[#ffa726]' : 'bg-[#ef5350]'}
+                      ${statusLabel === 'ok' ? 'bg-[#00e676]' : statusLabel === 'warn' ? 'bg-[#ffa726]' : 'bg-[#ef5350]'}
                     `}>
-                      {node.status === 'ok' && <CheckCircle2 size={24} className="text-[#041116]" />}
-                      {node.status === 'warn' && <AlertTriangle size={20} className="text-[#041116]" />}
-                      {node.status === 'err' && <AlertTriangle size={20} className="text-[#041116]" />}
+                      {statusLabel === 'ok' && <CheckCircle2 size={24} className="text-[#041116]" />}
+                      {statusLabel === 'warn' && <AlertTriangle size={20} className="text-[#041116]" />}
+                      {statusLabel === 'err' && <AlertTriangle size={20} className="text-[#041116]" />}
                     </div>
-                    <div className="mt-2 text-[11px] font-bold text-white bg-[#091b24] px-2 py-1 rounded border border-[#15303f]">{node.val}</div>
+                    <div className="mt-2 text-[11px] font-bold text-white bg-[#091b24] px-2 py-1 rounded border border-[#15303f]">{node.production_tph} T</div>
                     
-                    {node.status === 'err' && (
+                    {statusLabel === 'err' && (
                       <div className="absolute -bottom-8 bg-[#ef5350]/10 border border-[#ef5350]/30 px-2 py-1 rounded text-[#ef5350] text-[9px] font-bold whitespace-nowrap">
-                        Energy Loss Detected
+                        Loss Detected
                       </div>
                     )}
                   </div>
-                ))}
+                )})}
              </div>
              
              {/* Power Layer beneath */}
              <div className="w-full mt-auto pt-4 border-t border-[#1c3a4a] flex justify-center gap-12 text-[11px] text-[#5a7384]">
-               <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#00e676]"></div> WHRS: 4.2 MW</div>
-               <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#3b82f6]"></div> GRID: 5.7 MW</div>
-               <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#ffa726]"></div> CPP: 8.5 MW</div>
+               <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#00e676]"></div> WHRS: {whrs} MW</div>
+               <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#3b82f6]"></div> GRID: {data?.energy?.grid_import_mw || 0} MW</div>
+               <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#ffa726]"></div> CPP: {data?.energy?.cpp_generation_mw || 0} MW</div>
              </div>
 
            </div>

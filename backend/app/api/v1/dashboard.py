@@ -54,7 +54,9 @@ async def get_dashboard_overview():
     # Simple proxy health: degrade as vibration rises
     cm_health = max(0, 100 - (cm_vib / 7.0) * 60)
     rm_health = max(0, 100 - (rm_vib / 7.0) * 60)
-    overall_health = (cm_health + rm_health + 95) / 3  # kiln assumed 95
+    kiln_power = state.get("KILN-POWER", 3200.0)
+    kiln_health = max(60, 100 - abs(kiln_power - 3200) / 50)
+    overall_health = (cm_health + rm_health + kiln_health) / 3
 
     critical_count = sum(1 for a in alarms if a.get("priority") in ("HIGH", "CRITICAL"))
     at_risk_count = sum(1 for a in alarms if a.get("priority") == "MEDIUM")
@@ -139,14 +141,24 @@ async def get_dashboard_overview():
         },
         "departments": [
             {
-                "code": "KILN",
-                "name": "Pyroprocessing",
-                "status": "ATTENTION" if state.get("KILN-BZT", 1420) < 1380 else "NORMAL",
-                "production_tph": round(clinker_tph, 1),
-                "power_kw": round(state.get("KILN-POWER", 3200), 0),
-                "health": 93.5,
-                "active_alarms": sum(1 for a in alarms if a.get("department_code") == "PYROPROCESS"),
-                "efficiency_pct": round(min(100, (clinker_tph / 200) * 100), 1),
+                "code": "MINE",
+                "name": "Mine",
+                "status": "NORMAL",
+                "production_tph": 500.0,
+                "power_kw": 0.0,
+                "health": 100.0,
+                "active_alarms": 0,
+                "efficiency_pct": 100.0,
+            },
+            {
+                "code": "CRUSHER",
+                "name": "Crusher",
+                "status": "NORMAL",
+                "production_tph": 430.0,
+                "power_kw": 1200.0,
+                "health": 98.0,
+                "active_alarms": 0,
+                "efficiency_pct": 98.0,
             },
             {
                 "code": "RAW_MILL",
@@ -156,7 +168,27 @@ async def get_dashboard_overview():
                 "power_kw": round(state.get("RM-POWER", 3200), 0),
                 "health": round(rm_health, 1),
                 "active_alarms": sum(1 for a in alarms if a.get("department_code") == "RAW_MILL"),
-                "efficiency_pct": 91.0,
+                "efficiency_pct": round(min(100, (state.get("RM-FEED", 285.0) / 300.0) * 100), 1),
+            },
+            {
+                "code": "KILN",
+                "name": "Kiln",
+                "status": "ATTENTION" if state.get("KILN-BZT", 1420) < 1380 else "NORMAL",
+                "production_tph": round(clinker_tph, 1),
+                "power_kw": round(state.get("KILN-POWER", 3200), 0),
+                "health": round(overall_health, 1),
+                "active_alarms": sum(1 for a in alarms if a.get("department_code") == "PYROPROCESS"),
+                "efficiency_pct": round(min(100, (clinker_tph / 200) * 100), 1),
+            },
+            {
+                "code": "COOLER",
+                "name": "Cooler",
+                "status": "NORMAL",
+                "production_tph": round(clinker_tph, 1),
+                "power_kw": 800.0,
+                "health": 95.0,
+                "active_alarms": 0,
+                "efficiency_pct": 95.0,
             },
             {
                 "code": "CEMENT_MILL",
@@ -166,8 +198,18 @@ async def get_dashboard_overview():
                 "power_kw": round(state.get("CM-POWER", 5200), 0),
                 "health": round(cm_health, 1),
                 "active_alarms": sum(1 for a in alarms if a.get("department_code") == "CEMENT_MILL"),
-                "efficiency_pct": 92.0,
+                "efficiency_pct": round(min(100, (state.get("CM-FEED", 145.0) / 150.0) * 100), 1),
             },
+            {
+                "code": "PACKING",
+                "name": "Packing",
+                "status": "NORMAL",
+                "production_tph": round(state.get("CM-FEED", 145.0), 1),
+                "power_kw": 400.0,
+                "health": 99.0,
+                "active_alarms": 0,
+                "efficiency_pct": 99.0,
+            }
         ],
         "disclaimer": "[SIMULATED DATA] Advisory recommendations only. Existing safety systems remain in full authority.",
     }

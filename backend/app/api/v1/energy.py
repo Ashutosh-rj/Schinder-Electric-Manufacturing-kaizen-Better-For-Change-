@@ -91,7 +91,7 @@ async def get_energy_breakdown():
 @router.get("/trend")
 async def get_energy_trend():
     """24h SEC trend (live point + simulated history)."""
-    import random
+    import math
     state = await get_current_state()
     total_power = state.get("PLANT-TOTAL-POWER", 18400.0)
     clinker_tph = state.get("KILN-CLINKER-PROD", 185.0)
@@ -100,8 +100,8 @@ async def get_energy_trend():
     base_time = datetime.now() - timedelta(hours=24)
     trend = []
     for i in range(24):
-        # Build historical trend converging to current value
-        noise = random.uniform(-1.5, 2.5)
+        # Build historical trend converging to current value using sine wave (deterministic)
+        noise = math.sin(i * 0.5) * 1.5 + math.cos(i * 1.2) * 1.0
         historical_sec = 62.0 + noise + (i / 24) * (current_sec - 62.0)
         trend.append({
             "time": (base_time + timedelta(hours=i)).isoformat(),

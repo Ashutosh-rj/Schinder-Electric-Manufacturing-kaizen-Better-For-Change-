@@ -125,17 +125,27 @@ async def get_equipment_health(id: int):
         if ml_health:
             health_score = ml_health.get("health_score", health_score)
 
+    # Calculate MTBF dynamically based on health score (Exponential decay)
+    base_mtbf = {1: 180, 2: 90, 3: 45}.get(id, 60) # Different base lifetimes per equipment
+    mtbf_days = round(base_mtbf * ((health_score / 100) ** 3), 1)
+    
+    # MTTR is generally static per equipment type, but can increase if condition is worse
+    base_mttr = {1: 48, 2: 24, 3: 8}.get(id, 12)
+    mttr_hours = round(base_mttr * (1.5 if health_score < 65 else 1.0), 1)
+
     base.update({
         "equipment_id": id,
         "code": eq["code"],
         "name": eq["name"],
         "health_score": round(health_score, 1),
         "status": "HIGH_RISK" if health_score < 65 else "DEGRADING" if health_score < 80 else "NORMAL",
+        "mtbf_days": max(1.0, mtbf_days),
+        "mttr_hours": mttr_hours,
         "components": {
             "vibration": {"score": round(max(0, 100 - vib * 12), 1), "weight": 0.35, "value": round(vib, 2), "unit": "mm/s"},
-            "thermal": {"score": 80.0, "weight": 0.25},
+            "thermal": {"score": round(max(50, min(100, health_score + 2)), 1), "weight": 0.25},
             "electrical": {"score": round(min(100, health_score + 10), 1), "weight": 0.25},
-            "lubrication": {"score": 75.0, "weight": 0.15},
+            "lubrication": {"score": round(max(50, min(100, health_score - 5)), 1), "weight": 0.15},
         },
         "recommendation": (
             "Immediate inspection required — vibration critical." if vib > 6.0
