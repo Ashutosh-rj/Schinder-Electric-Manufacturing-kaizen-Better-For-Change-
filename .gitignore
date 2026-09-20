@@ -1,4 +1,9 @@
-# OS generated files
+# =====================================================================
+# KAIZEN INTELLIGENCE PLATFORM — .gitignore
+# Schneider Electric EcoStruxure & Industrial AI Platform
+# =====================================================================
+
+# ── Operating System Files ──────────────────────────────────────────
 .DS_Store
 .DS_Store?
 ._*
@@ -7,28 +12,50 @@
 ehthumbs.db
 Thumbs.db
 desktop.ini
+$RECYCLE.BIN/
 
-# IDEs and Editors
+# ── IDEs and Editors ────────────────────────────────────────────────
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 *.bak
+*.orig
+*.rej
+*.sublime-workspace
+*.sublime-project
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.user
 
-# Python
+# ── Python & Environments ───────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+virtualenv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Python packaging & build artifacts
+# (Use anchored or specific paths so frontend/src/lib is never ignored)
+/build/
 develop-eggs/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -39,46 +66,63 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Pytest and coverage
+# Testing & Type Checking
 .pytest_cache/
 .coverage
 htmlcov/
 .tox/
 .nox/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
 
-# Virtual environments
-venv/
-env/
-ENV/
-env.bak/
-venv.bak/
-.venv/
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Node / Javascript
+# ── Node.js & Frontend (React / Vite / TypeScript) ──────────────────
+frontend/node_modules/
 node_modules/
-npm-debug.log
-yarn-error.log
-yarn-debug.log
-.pnpm-debug.log
-lerna-debug.log
+frontend/dist/
+frontend/dist-ssr/
 dist/
 dist-ssr/
-coverage/
-.next/
 out/
+.next/
 .nuxt/
-.serverless/
-.nyc_output/
+.turbo/
+.cache
+.npm
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+lerna-debug.log*
+
+# Linters & Build cache
 .eslintcache
+.stylelintcache
+*.tsbuildinfo
 
-# Logs and databases
-*.log
-*.sqlite
-*.sqlite3
+# Ensure source library folders are NEVER ignored
+!**/src/lib/
+!**/src/lib/**
+!frontend/src/lib/
+!frontend/src/lib/**
 
-# Environment Variables
+# ── ML Models, Weights & Datasets ───────────────────────────────────
+*.h5
+*.pb
+*.onnx
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.safetensors
+runs/
+wandb/
+.tensorboard/
+
+# ── Environment & Secrets (Never commit credentials) ───────────────
 .env
 .env.local
 .env.development.local
@@ -86,23 +130,23 @@ out/
 .env.production.local
 .env*.local
 
-# Typescript
-*.tsbuildinfo
+# Allow example environment templates
+!.env.example
+!.env*.example
 
-# Docker
-.dockerignore
+# ── Databases & Persistent Local Storage ────────────────────────────
+*.log
+*.sqlite
+*.sqlite3
+*.db
+postgres_data/
+timescale_data/
+redis_data/
+kafka_data/
+zookeeper_data/
+grafana_data/
+prometheus_data/
 
-# Cache
-.cache
-.npm
-.eslintcache
-.stylelintcache
-
-# ML / Data
-*.h5
-*.pb
-*.onnx
-*.pkl
-
-# specific to the project
+# ── Temporary & Scratch Files ───────────────────────────────────────
 temp.txt
+*.tmp
