@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import ReactECharts from 'echarts-for-react';
 import { Activity, AlertTriangle, CheckCircle, Info, Settings } from 'lucide-react';
 import { api } from '../lib/api';
@@ -67,9 +68,16 @@ const Rec = ({ action, reason, conf, priority }: { action: string, reason: strin
 };
 
 const Process: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('Raw Mill');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'Raw Mill');
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+    }
+  }, [location.state?.activeTab]);
 
   useEffect(() => {
     let endpoint = '/process/rawmill/1';

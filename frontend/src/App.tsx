@@ -6,6 +6,7 @@ import Layout from './components/layout/Layout';
 
 // Existing eager loads (keep simple ones eager if preferred, but lazy is good for all)
 import Login from './pages/Login';
+import Signup from './pages/Signup';
 import LandingPage from './pages/LandingPage';
 
 // Lazy loaded pages
@@ -56,6 +57,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
           <Route element={
             <ProtectedRoute>
               <Layout />

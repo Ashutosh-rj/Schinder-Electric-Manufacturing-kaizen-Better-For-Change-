@@ -49,11 +49,17 @@ const LandingPage = () => {
           <a href="#" className="hover:text-green-600 transition-colors">About</a>
         </nav>
 
-        <Link to="/login">
-          <button className="bg-[#2d8f59] hover:bg-[#237548] text-white px-6 py-2 rounded-md font-semibold text-sm transition-colors">
-            Request a Demo
-          </button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link to="/login" className="text-sm font-bold text-gray-700 hover:text-[#106c35] px-3 py-2 transition-colors">
+            Sign In
+          </Link>
+          <Link to="/signup">
+            <button className="bg-[#106c35] hover:bg-[#0c572b] text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md shadow-green-900/10 flex items-center gap-1.5">
+              <span>Register Plant</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </Link>
+        </div>
       </header>
 
       {/* HERO SECTION */}
@@ -70,7 +76,7 @@ const LandingPage = () => {
         <div className="relative z-10 max-w-7xl mx-auto px-8 w-full flex justify-between items-center">
           <div className="max-w-2xl">
             <p className="text-green-400 text-xs font-bold tracking-wider mb-4 uppercase flex items-center gap-2">
-              <Zap size={14}/> KAIZEN Intelligence Platform
+              <Zap size={14}/> KAIZEN Intelligence Platform • Schneider Electric
             </p>
             <h1 className="text-5xl md:text-6xl font-extrabold text-white leading-tight mb-6">
               Same Production.<br/>
@@ -83,13 +89,17 @@ const LandingPage = () => {
             <p className="text-gray-400 text-md mb-8 max-w-xl leading-relaxed">
               Transform your cement plant with an AI-powered continuous improvement platform that bridges the gap between raw data and verified, sustainable savings.
             </p>
-            <div className="flex gap-4">
-              <button className="bg-green-400 hover:bg-green-300 text-gray-900 px-6 py-3 rounded-md font-bold flex items-center gap-2 transition-colors">
-                See How It Works <ArrowRight className="w-5 h-5" />
-              </button>
-              <button className="border border-white hover:bg-white/10 text-white px-6 py-3 rounded-md font-semibold flex items-center gap-2 transition-colors">
-                <Play className="w-5 h-5" /> Watch Video
-              </button>
+            <div className="flex flex-wrap gap-4">
+              <Link to="/signup">
+                <button className="bg-emerald-400 hover:bg-emerald-300 text-gray-950 px-7 py-3.5 rounded-xl font-extrabold flex items-center gap-2 transition-all shadow-lg shadow-emerald-500/20 hover:scale-105">
+                  Register Your Plant <ArrowRight className="w-5 h-5" />
+                </button>
+              </Link>
+              <Link to="/login">
+                <button className="border border-white/40 hover:bg-white/10 text-white px-6 py-3.5 rounded-xl font-bold flex items-center gap-2 transition-all backdrop-blur-sm">
+                  Sign In to Live DCS
+                </button>
+              </Link>
             </div>
           </div>
 
@@ -314,13 +324,17 @@ const LandingPage = () => {
           <h2 className="text-3xl font-bold mb-4">Let's Build a More Efficient and Sustainable Tomorrow</h2>
           <p className="text-gray-300 text-lg mb-10">Turn your plant data into real savings — with Kaizen.</p>
           
-          <div className="flex justify-center gap-6 mb-16">
-             <button className="bg-green-400 hover:bg-green-300 text-gray-900 px-8 py-3 rounded-full font-bold flex items-center gap-2 transition-colors">
-                Request a Demo <ArrowRight className="w-5 h-5" />
-             </button>
-             <button className="border-2 border-gray-600 hover:border-gray-500 text-white px-8 py-3 rounded-full font-semibold transition-colors">
-                See Real Use Cases
-             </button>
+          <div className="flex justify-center gap-6 mb-16 flex-wrap">
+            <Link to="/signup">
+              <button className="bg-emerald-400 hover:bg-emerald-300 text-gray-900 px-8 py-3.5 rounded-full font-bold flex items-center gap-2 transition-all shadow-lg hover:scale-105">
+                Register Your Plant <ArrowRight className="w-5 h-5" />
+              </button>
+            </Link>
+            <Link to="/login">
+              <button className="border-2 border-gray-600 hover:border-emerald-400 text-white px-8 py-3.5 rounded-full font-semibold transition-colors">
+                Sign In to DCS
+              </button>
+            </Link>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto border-t border-gray-700 pt-12">

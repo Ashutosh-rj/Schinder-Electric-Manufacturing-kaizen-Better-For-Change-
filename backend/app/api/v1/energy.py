@@ -20,19 +20,20 @@ async def get_sec():
     """Live Specific Energy Consumption."""
     state = await get_current_state()
 
-    total_power = state.get("PLANT-TOTAL-POWER", 18400.0)
-    clinker_tph = state.get("KILN-CLINKER-PROD", 185.0)
-    cement_tph = state.get("CM-FEED", 145.0)
+    SME_SCALE_FACTOR = 0.1
+    total_power = state.get("PLANT-TOTAL-POWER", 18400.0) * SME_SCALE_FACTOR
+    clinker_tph = state.get("KILN-CLINKER-PROD", 185.0) * SME_SCALE_FACTOR
+    cement_tph = state.get("CM-FEED", 145.0) * SME_SCALE_FACTOR
 
     sec_clinker = (total_power / clinker_tph) if clinker_tph > 0 else 64.2
     sec_cement = (total_power / cement_tph) if cement_tph > 0 else 38.5
     deviation = ((sec_clinker - BAT_SEC_KWH_T_CLINKER) / BAT_SEC_KWH_T_CLINKER) * 100
 
     # Compute per-department SEC
-    kiln_power = state.get("KILN-POWER", 3200.0)
-    rm_power = state.get("RM-POWER", 3500.0)
-    cm_power = state.get("CM-POWER", 5200.0)
-    aux_power = state.get("UTIL-AUX-POWER", 3000.0)
+    kiln_power = state.get("KILN-POWER", 3200.0) * SME_SCALE_FACTOR
+    rm_power = state.get("RM-POWER", 3500.0) * SME_SCALE_FACTOR
+    cm_power = state.get("CM-POWER", 5200.0) * SME_SCALE_FACTOR
+    aux_power = state.get("UTIL-AUX-POWER", 3000.0) * SME_SCALE_FACTOR
 
     by_dept = [
         {"department": "Raw Mill", "sec": round(rm_power / max(clinker_tph, 1), 1), "target": 17.0, "power_kw": round(rm_power, 0)},
@@ -65,12 +66,13 @@ async def get_sec():
 async def get_energy_breakdown():
     """Live energy breakdown by department."""
     state = await get_current_state()
-    clinker_tph = state.get("KILN-CLINKER-PROD", 185.0)
+    SME_SCALE_FACTOR = 0.1
+    clinker_tph = state.get("KILN-CLINKER-PROD", 185.0) * SME_SCALE_FACTOR
 
-    kiln_power = state.get("KILN-POWER", 3200.0)
-    rm_power = state.get("RM-POWER", 3500.0)
-    cm_power = state.get("CM-POWER", 5200.0)
-    aux_power = state.get("UTIL-AUX-POWER", 3000.0)
+    kiln_power = state.get("KILN-POWER", 3200.0) * SME_SCALE_FACTOR
+    rm_power = state.get("RM-POWER", 3500.0) * SME_SCALE_FACTOR
+    cm_power = state.get("CM-POWER", 5200.0) * SME_SCALE_FACTOR
+    aux_power = state.get("UTIL-AUX-POWER", 3000.0) * SME_SCALE_FACTOR
     total = kiln_power + rm_power + cm_power + aux_power
 
     def dev(actual, target_pct):

@@ -1,14 +1,40 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AlertTriangle, TrendingUp, Settings, CheckCircle } from 'lucide-react';
 
 const Optimization = () => {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  const runOptimization = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/v1/optimization/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target: 'plant',
+          constraints: {},
+          objective: 'minimize_energy'
+        })
+      });
+      if (response.ok) {
+        const result = await response.json();
+        setData(result);
+      }
+    } catch (err) {
+      console.error("Optimization failed", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-[#ffa726]/10 border border-[#ffa726]/30 p-4 rounded-lg flex items-start gap-3">
         <AlertTriangle className="text-[#ffa726] flex-shrink-0" />
         <div>
-          <h3 className="text-[#ffa726] font-bold">⚠️ OPTIMIZATION ADVISORY MODE</h3>
-          <p className="text-sm text-gray-300 mt-1">All recommendations require human review and approval before implementation. Existing DCS/PLC safety logic remains in full authority.</p>
+          <h3 className="text-[#ffa726] font-bold">⚠️ OPTIMIZATION ADVISORY MODE (SIMULATED)</h3>
+          <p className="text-sm text-gray-300 mt-1">Recommendations are generated using a simplified linear physics proxy model of the kiln. All recommendations require human review and approval before implementation. Existing DCS/PLC safety logic remains in full authority.</p>
         </div>
       </div>
 
@@ -35,15 +61,19 @@ const Optimization = () => {
           <div className="space-y-4">
             <div className="flex justify-between items-center border-b border-gray-800 pb-2">
               <span className="text-gray-400">Energy Savings</span>
-              <span className="text-lg font-bold text-[#00e676]">2,450 kWh/day (₹ 18,500/day)</span>
+              <span className="text-lg font-bold text-[#00e676]">
+                {data ? `${data.expected_savings?.energy_kwh_day} kWh/day (₹ ${data.expected_savings?.cost_day}/day)` : '---'}
+              </span>
             </div>
             <div className="flex justify-between items-center border-b border-gray-800 pb-2">
               <span className="text-gray-400">Production Gain</span>
-              <span className="text-lg font-bold text-[#00e676]">316.8 t/day</span>
+              <span className="text-lg font-bold text-[#00e676]">---</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-400">CO2 Reduction</span>
-              <span className="text-lg font-bold text-[#00d4ff]">4.2 t/day</span>
+              <span className="text-lg font-bold text-[#00d4ff]">
+                {data ? `${data.expected_savings?.co2_tday} t/day` : '---'}
+              </span>
             </div>
           </div>
         </div>
@@ -52,8 +82,12 @@ const Optimization = () => {
       <div className="bg-[#1a2540] rounded-lg border border-gray-800 overflow-hidden">
         <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
           <h2 className="text-lg font-bold">Current vs Optimized</h2>
-          <button className="bg-[#00d4ff] hover:bg-[#00b4d8] text-[#0a0e1a] px-4 py-2 rounded text-sm font-bold transition-colors" onClick={() => alert('This will generate new advisory recommendations. No automatic changes will be made to plant controls.')}>
-            Run Optimization
+          <button 
+            className="bg-[#00d4ff] hover:bg-[#00b4d8] text-[#0a0e1a] px-4 py-2 rounded text-sm font-bold transition-colors disabled:opacity-50" 
+            onClick={runOptimization}
+            disabled={loading}
+          >
+            {loading ? 'Running...' : 'Run Optimization'}
           </button>
         </div>
         <table className="w-full text-sm text-left text-gray-300">
@@ -67,23 +101,25 @@ const Optimization = () => {
             </tr>
           </thead>
           <tbody>
-            {[
-              { p: 'Clinker Production', c: '285.3', o: '298.5', d: '+13.2', u: 'TPH', good: true },
-              { p: 'Heat Consumption', c: '745.2', o: '728.5', d: '-16.7', u: 'kcal/kg', good: true },
-              { p: 'SEC Clinker', c: '64.2', o: '61.8', d: '-2.4', u: 'kWh/t', good: true },
-              { p: 'CO2 Intensity', c: '820', o: '802', d: '-18', u: 'kg/t', good: true },
-              { p: 'Kiln Feed', c: '285', o: '295', d: '+10', u: 'TPH', good: false },
-              { p: 'Kiln Speed', c: '3.20', o: '3.35', d: '+0.15', u: 'RPM', good: false },
-              { p: 'Primary Air', c: '12.5', o: '11.8', d: '-0.7', u: '%', good: true }
-            ].map(r => (
-              <tr key={r.p} className="border-b border-gray-800 hover:bg-gray-800/30">
-                <td className="px-4 py-3 font-medium">{r.p}</td>
-                <td className="px-4 py-3 font-mono">{r.c}</td>
-                <td className="px-4 py-3 font-mono text-white">{r.o}</td>
-                <td className={`px-4 py-3 font-bold ${r.good ? 'text-[#00e676]' : 'text-[#ef5350]'}`}>{r.d}</td>
-                <td className="px-4 py-3 text-gray-500">{r.u}</td>
+            {data ? data.recommendations.map((r: any) => {
+              const delta = (r.recommended - r.current).toFixed(2);
+              const isPositive = Number(delta) > 0;
+              return (
+                <tr key={r.parameter} className="border-b border-gray-800 hover:bg-gray-800/30">
+                  <td className="px-4 py-3 font-medium capitalize">{r.parameter.replace(/_/g, ' ')}</td>
+                  <td className="px-4 py-3 font-mono">{r.current}</td>
+                  <td className="px-4 py-3 font-mono text-white">{r.recommended}</td>
+                  <td className={`px-4 py-3 font-bold ${isPositive ? 'text-[#00e676]' : 'text-[#ef5350]'}`}>
+                    {isPositive ? '+' : ''}{delta}
+                  </td>
+                  <td className="px-4 py-3 text-gray-500">{r.unit}</td>
+                </tr>
+              )
+            }) : (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-gray-500">Run optimization to view parameters</td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

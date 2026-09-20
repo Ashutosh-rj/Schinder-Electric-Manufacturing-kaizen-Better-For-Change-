@@ -24,17 +24,20 @@ async def get_dashboard_overview():
     anomalies = await get_recent_anomalies()
     kaizen_opps = await get_kaizen_opportunities()
 
+    # ── Scale Down factor for Mini SME Plant ──────────────────────────────
+    SME_SCALE_FACTOR = 0.1
+
     # ── Production ────────────────────────────────────────────────────────
-    clinker_tph = state.get("KILN-CLINKER-PROD", 185.3)
-    cement_tph = state.get("CM-FEED", 145.0) * 1.02  # approximate
+    clinker_tph = state.get("KILN-CLINKER-PROD", 185.3) * SME_SCALE_FACTOR
+    cement_tph = state.get("CM-FEED", 145.0) * 1.02 * SME_SCALE_FACTOR
 
     # ── Energy ────────────────────────────────────────────────────────────
-    total_power_kw = state.get("PLANT-TOTAL-POWER", 18400.0)
+    total_power_kw = state.get("PLANT-TOTAL-POWER", 18400.0) * SME_SCALE_FACTOR
     total_power_mw = total_power_kw / 1000.0
-    whrs_kw = state.get("WHRS-GENERATION", 4200.0)
-    cpp_kw = state.get("CPP-POWER", 8500.0)
-    grid_kw = state.get("PLANT-GRID-IMPORT", 5700.0)
-    fuel_rate = state.get("KILN-FUEL", 12.3)
+    whrs_kw = state.get("WHRS-GENERATION", 4200.0) * SME_SCALE_FACTOR
+    cpp_kw = state.get("CPP-POWER", 8500.0) * SME_SCALE_FACTOR
+    grid_kw = state.get("PLANT-GRID-IMPORT", 5700.0) * SME_SCALE_FACTOR
+    fuel_rate = state.get("KILN-FUEL", 12.3) * SME_SCALE_FACTOR
 
     sec = (total_power_kw / clinker_tph) if clinker_tph > 0 else 64.2
     sec_deviation = ((sec - BAT_SEC_KWH_T_CLINKER) / BAT_SEC_KWH_T_CLINKER) * 100
@@ -54,8 +57,8 @@ async def get_dashboard_overview():
     # Simple proxy health: degrade as vibration rises
     cm_health = max(0, 100 - (cm_vib / 7.0) * 60)
     rm_health = max(0, 100 - (rm_vib / 7.0) * 60)
-    kiln_power = state.get("KILN-POWER", 3200.0)
-    kiln_health = max(60, 100 - abs(kiln_power - 3200) / 50)
+    kiln_power = state.get("KILN-POWER", 3200.0) * SME_SCALE_FACTOR
+    kiln_health = max(60, 100 - abs(kiln_power - 320.0) / 5)
     overall_health = (cm_health + rm_health + kiln_health) / 3
 
     critical_count = sum(1 for a in alarms if a.get("priority") in ("HIGH", "CRITICAL"))
@@ -68,7 +71,7 @@ async def get_dashboard_overview():
     alarm_low = sum(1 for a in alarms if a.get("priority") == "LOW")
 
     # ── Kaizen ────────────────────────────────────────────────────────────
-    total_saving = sum(o.get("saving_inr_day", 0) for o in kaizen_opps)
+    total_saving = sum(o.get("saving_inr_day", 0) for o in kaizen_opps) * SME_SCALE_FACTOR
     top_opp = kaizen_opps[0] if kaizen_opps else {
         "id": "KAI-000", "title": "Analysing opportunities...",
         "saving_kwh_day": 0, "priority": "LOW"
@@ -84,6 +87,40 @@ async def get_dashboard_overview():
     # Kaizen Score (0-100)
     kaizen_score = max(0, 100 - sec_deviation * 3 - len(alarms) * 1.5 - (100 - overall_health) * 0.3)
 
+    # ── Dynamic Departments from config ───────────────────────────────────
+    import json
+    import os
+    departments_list = []
+    config_path = os.path.join(os.path.dirname(__file__), "../../../plant_config.json")
+    try:
+        with open(config_path, "r") as f:
+            config = json.load(f)
+            
+        for dept in config.get("departments", []):
+            prod_val = state.get(dept["production_tag"], 0.0) * SME_SCALE_FACTOR
+            power_val = state.get(dept["power_tag"], 0.0) * SME_SCALE_FACTOR
+            dept_alarms = sum(1 for a in alarms if a.get("department_code", "").upper() == dept["code"])
+            
+            # Basic status logic
+            d_status = "NORMAL"
+            if dept_alarms > 2:
+                d_status = "CRITICAL"
+            elif dept_alarms > 0:
+                d_status = "ATTENTION"
+                
+            departments_list.append({
+                "code": dept["code"],
+                "name": dept["name"],
+                "status": d_status,
+                "production_tph": round(prod_val, 1),
+                "power_kw": round(power_val, 0),
+                "health": round(overall_health, 1), # Simplified for demo
+                "active_alarms": dept_alarms,
+                "efficiency_pct": round(min(100, (prod_val / max(dept["max_capacity"], 1)) * 100), 1),
+            })
+    except Exception as e:
+        departments_list = [{"name": "Error Loading Config", "status": "CRITICAL", "production_tph": 0}]
+
     return {
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "data_source": "LIVE" if state else "DEMO",
@@ -94,8 +131,8 @@ async def get_dashboard_overview():
             "cement_tph": round(cement_tph, 1),
             "today_clinker_tons": round(clinker_tph * 16, 0),
             "today_cement_tons": round(cement_tph * 16, 0),
-            "target_tph": 200.0,
-            "efficiency_pct": round(min(100, (clinker_tph / 200.0) * 100), 1),
+            "target_tph": 20.0, # scaled target
+            "efficiency_pct": round(min(100, (clinker_tph / 20.0) * 100), 1),
         },
         "energy": {
             "total_power_mw": round(total_power_mw, 2),
@@ -136,80 +173,23 @@ async def get_dashboard_overview():
                 "opp_id": top_opp.get("id", ""),
                 "title": top_opp.get("title", ""),
                 "saving_kwh_day": top_opp.get("saving_kwh_day", 0),
+                "saving_inr_day": top_opp.get("saving_inr_day", 0) * SME_SCALE_FACTOR,
                 "priority": top_opp.get("priority", "LOW"),
+                "status": "Active Optimization Opportunity" if top_opp.get("id") else "Operating Optimally",
             },
         },
-        "departments": [
-            {
-                "code": "MINE",
-                "name": "Mine",
-                "status": "NORMAL",
-                "production_tph": 500.0,
-                "power_kw": 0.0,
-                "health": 100.0,
-                "active_alarms": 0,
-                "efficiency_pct": 100.0,
-            },
-            {
-                "code": "CRUSHER",
-                "name": "Crusher",
-                "status": "NORMAL",
-                "production_tph": 430.0,
-                "power_kw": 1200.0,
-                "health": 98.0,
-                "active_alarms": 0,
-                "efficiency_pct": 98.0,
-            },
-            {
-                "code": "RAW_MILL",
-                "name": "Raw Mill",
-                "status": "ATTENTION" if rm_vib > 5.0 else "NORMAL",
-                "production_tph": round(state.get("RM-FEED", 285.0), 1),
-                "power_kw": round(state.get("RM-POWER", 3200), 0),
-                "health": round(rm_health, 1),
-                "active_alarms": sum(1 for a in alarms if a.get("department_code") == "RAW_MILL"),
-                "efficiency_pct": round(min(100, (state.get("RM-FEED", 285.0) / 300.0) * 100), 1),
-            },
-            {
-                "code": "KILN",
-                "name": "Kiln",
-                "status": "ATTENTION" if state.get("KILN-BZT", 1420) < 1380 else "NORMAL",
-                "production_tph": round(clinker_tph, 1),
-                "power_kw": round(state.get("KILN-POWER", 3200), 0),
-                "health": round(overall_health, 1),
-                "active_alarms": sum(1 for a in alarms if a.get("department_code") == "PYROPROCESS"),
-                "efficiency_pct": round(min(100, (clinker_tph / 200) * 100), 1),
-            },
-            {
-                "code": "COOLER",
-                "name": "Cooler",
-                "status": "NORMAL",
-                "production_tph": round(clinker_tph, 1),
-                "power_kw": 800.0,
-                "health": 95.0,
-                "active_alarms": 0,
-                "efficiency_pct": 95.0,
-            },
-            {
-                "code": "CEMENT_MILL",
-                "name": "Cement Mill",
-                "status": "ATTENTION" if cm_vib > 5.0 else "NORMAL",
-                "production_tph": round(state.get("CM-FEED", 145.0), 1),
-                "power_kw": round(state.get("CM-POWER", 5200), 0),
-                "health": round(cm_health, 1),
-                "active_alarms": sum(1 for a in alarms if a.get("department_code") == "CEMENT_MILL"),
-                "efficiency_pct": round(min(100, (state.get("CM-FEED", 145.0) / 150.0) * 100), 1),
-            },
-            {
-                "code": "PACKING",
-                "name": "Packing",
-                "status": "NORMAL",
-                "production_tph": round(state.get("CM-FEED", 145.0), 1),
-                "power_kw": 400.0,
-                "health": 99.0,
-                "active_alarms": 0,
-                "efficiency_pct": 99.0,
-            }
+        "kpis": [
+            { "label": 'CLINKER PROD', "value": round(clinker_tph, 1), "unit": 'TPH', "trend": f"{'↑' if clinker_tph >= 18.0 else '↓'} {abs(round((clinker_tph - 18.0)/18.0*100, 1))}%", "up": clinker_tph >= 18.0, "icon": 'activity', "color": '#00e676', "data": [] },
+            { "label": 'CEMENT PROD', "value": round(cement_tph, 1), "unit": 'TPH', "trend": f"{'↑' if cement_tph >= 15.0 else '↓'} {abs(round((cement_tph - 15.0)/15.0*100, 1))}%", "up": cement_tph >= 15.0, "icon": 'activity', "color": '#00d4ff', "data": [] },
+            { "label": 'TOTAL POWER', "value": round(total_power_mw, 2), "unit": 'MW', "trend": f"{'↓' if total_power_mw <= 2.0 else '↑'} {abs(round((total_power_mw - 2.0)/2.0*100, 1))}%", "up": total_power_mw <= 2.0, "icon": 'zap', "color": '#ffa726', "data": [] },
+            { "label": 'SPECIFIC ENERGY', "value": round(sec, 1), "unit": 'kWh/t', "trend": f"{'↓' if sec <= BAT_SEC_KWH_T_CLINKER else '↑'} {abs(round(sec_deviation, 1))}%", "up": sec <= BAT_SEC_KWH_T_CLINKER, "icon": 'zap', "color": '#3b82f6', "data": [] },
+            { "label": 'WHRS GEN', "value": round(whrs_kw / 1000, 2), "unit": 'MW', "trend": f"{'↑' if whrs_kw > 0 else '↓'} {abs(round((whrs_kw - 400)/400*100, 1)) if whrs_kw > 0 else 0}%", "up": whrs_kw > 0, "icon": 'wind', "color": '#00e676', "data": [] },
         ],
+        "power_sources": [
+            {"label": "WHRS", "value": round(whrs_kw / 1000, 2), "color": "#00e676"},
+            {"label": "GRID", "value": round(grid_kw / 1000, 2), "color": "#3b82f6"},
+            {"label": "CPP", "value": round(cpp_kw / 1000, 2), "color": "#ffa726"}
+        ],
+        "departments": departments_list,
         "disclaimer": "[SIMULATED DATA] Advisory recommendations only. Existing safety systems remain in full authority.",
     }

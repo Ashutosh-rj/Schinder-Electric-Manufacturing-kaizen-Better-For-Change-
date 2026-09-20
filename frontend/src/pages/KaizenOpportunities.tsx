@@ -1,19 +1,50 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Lightbulb, TrendingUp, CheckCircle, Clock } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 
-const opps = [
-  { id: 'KAI-001', title: 'Cement Mill 2 Fan Speed Optimization', saving: '185 kWh/day', val: '₹1,400', diff: 'LOW', stat: 'Open', dept: 'Production' },
-  { id: 'KAI-002', title: 'Limestone Crusher Feed Optimization', saving: '320 kWh/day', val: '₹2,400', diff: 'MEDIUM', stat: 'In Progress', dept: 'Production' },
-  { id: 'KAI-003', title: 'Kiln Primary Air Reduction', saving: '420 kWh/day', val: '₹3,150', diff: 'LOW', stat: 'Open', dept: 'Process' },
-  { id: 'KAI-004', title: 'Raw Mill Separator Speed Optimization', saving: '280 kWh/day', val: '₹2,100', diff: 'LOW', stat: 'Open', dept: 'Process' },
-  { id: 'KAI-005', title: 'WHRS AQC Boiler Cleaning', saving: '890 kWh/day', val: '₹6,675', diff: 'MEDIUM', stat: 'Open', dept: 'Maintenance' },
-  { id: 'KAI-006', title: 'Cooler Fan Profile Optimization', saving: '350 kWh/day', val: '₹2,625', diff: 'LOW', stat: 'Open', dept: 'Process' },
-  { id: 'KAI-007', title: 'Preheater False Air Sealing', saving: '580 kWh/day', val: '₹4,350', diff: 'HIGH', stat: 'Closed', dept: 'Maintenance' },
-  { id: 'KAI-008', title: 'VFD Installation on RM Fan', saving: '1200 kWh/day', val: '₹9,000', diff: 'HIGH', stat: 'Open', dept: 'Projects' }
-];
-
 const KaizenOpportunities = () => {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/api/v1/kaizen');
+        if (response.ok) {
+          const result = await response.json();
+          setData(result);
+        }
+      } catch (err) {
+        console.error("Failed to fetch kaizen opportunities", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const opps = data?.opportunities || [];
+
+  const scatterData = opps.map((o: any) => {
+    // Map effort to difficulty (1=LOW, 2=MEDIUM, 3=HIGH)
+    let diffVal = 1;
+    if (o.effort === 'MEDIUM') diffVal = 2;
+    if (o.effort === 'HIGH') diffVal = 3;
+    
+    // Bubble size
+    let size = 5;
+    if (o.saving_inr_day > 5000) size = 8;
+    if (o.saving_inr_day > 10000) size = 10;
+
+    return {
+      value: [diffVal, o.saving_inr_day || 0, size, o.id],
+      name: o.id
+    };
+  });
+
   const scatterOpts = {
     backgroundColor: 'transparent',
     tooltip: { trigger: 'item', formatter: '{b}' },
@@ -22,29 +53,36 @@ const KaizenOpportunities = () => {
     series: [
       {
         type: 'scatter',
-        symbolSize: (data: any) => data[2] * 5,
+        symbolSize: (item: any) => item[2] * 4,
         itemStyle: { color: '#00d4ff', opacity: 0.8 },
-        data: [
-          { value: [1, 1400, 8, 'KAI-001'], name: 'KAI-001' },
-          { value: [2, 2400, 7, 'KAI-002'], name: 'KAI-002' },
-          { value: [1, 3150, 9, 'KAI-003'], name: 'KAI-003' },
-          { value: [1, 2100, 8, 'KAI-004'], name: 'KAI-004' },
-          { value: [2, 6675, 6, 'KAI-005'], name: 'KAI-005' },
-          { value: [1, 2625, 8, 'KAI-006'], name: 'KAI-006' },
-          { value: [3, 4350, 5, 'KAI-007'], name: 'KAI-007' },
-          { value: [3, 9000, 9, 'KAI-008'], name: 'KAI-008' }
-        ]
+        data: scatterData
       }
     ]
   };
 
+  if (loading && !data) {
+    return <div className="p-8 text-center text-gray-400">Loading Kaizen Opportunities...</div>;
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-4 gap-4">
-        <div className="bg-[#1a2540] p-4 rounded-lg border border-gray-800"><div className="text-sm text-gray-400">Total Potential</div><div className="text-2xl font-bold text-[#00e676]">₹48,500/day</div></div>
-        <div className="bg-[#1a2540] p-4 rounded-lg border border-gray-800"><div className="text-sm text-gray-400">Open</div><div className="text-2xl font-bold text-[#00d4ff]">14</div></div>
-        <div className="bg-[#1a2540] p-4 rounded-lg border border-gray-800"><div className="text-sm text-gray-400">In Progress</div><div className="text-2xl font-bold text-[#ffa726]">3</div></div>
-        <div className="bg-[#1a2540] p-4 rounded-lg border border-gray-800"><div className="text-sm text-gray-400">Closed (Verified)</div><div className="text-2xl font-bold text-gray-300">8</div></div>
+        <div className="bg-[#1a2540] p-4 rounded-lg border border-gray-800">
+          <div className="text-sm text-gray-400">Total Potential</div>
+          <div className="text-2xl font-bold text-[#00e676]">₹{data?.total_potential_saving_inr_day?.toLocaleString() || 0}/day</div>
+        </div>
+        <div className="bg-[#1a2540] p-4 rounded-lg border border-gray-800">
+          <div className="text-sm text-gray-400">Active Opportunities</div>
+          <div className="text-2xl font-bold text-[#00d4ff]">{opps.length}</div>
+        </div>
+        <div className="bg-[#1a2540] p-4 rounded-lg border border-gray-800">
+          <div className="text-sm text-gray-400">Kaizen Score</div>
+          <div className="text-2xl font-bold text-[#ffa726]">{data?.kaizen_score || 0}</div>
+        </div>
+        <div className="bg-[#1a2540] p-4 rounded-lg border border-gray-800">
+          <div className="text-sm text-gray-400">Current SEC</div>
+          <div className="text-2xl font-bold text-gray-300">{data?.sec_current || 0} <span className="text-sm font-normal">kWh/t</span></div>
+        </div>
       </div>
       
       <div className="grid grid-cols-3 gap-6">
@@ -62,28 +100,34 @@ const KaizenOpportunities = () => {
                 </select>
             </div>
             <div className="space-y-4 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
-              {opps.map(o => (
-                <div key={o.id} className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 flex justify-between items-center">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs text-[#00d4ff] font-mono">{o.id}</span>
-                        <span className="text-xs bg-gray-700 px-1 rounded">{o.dept}</span>
+              {opps.length === 0 ? (
+                <div className="text-gray-500 text-center py-8">No opportunities detected.</div>
+              ) : (
+                opps.map((o: any) => (
+                  <div key={o.id} className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 flex justify-between items-center">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs text-[#00d4ff] font-mono">{o.id}</span>
+                          <span className="text-xs bg-gray-700 px-1 rounded">{o.department}</span>
+                      </div>
+                      <div className="font-bold text-white text-sm">{o.title}</div>
+                      <div className="text-xs text-gray-400 mt-1 max-w-md">{o.description}</div>
                     </div>
-                    <div className="font-bold text-white text-sm">{o.title}</div>
+                    <div className="flex items-center gap-6">
+                      <div className="text-right hidden md:block">
+                        <div className="text-xs text-gray-400">Potential</div>
+                        <div className="font-bold text-[#00e676] text-sm">{o.saving_kwh_day} kWh/day</div>
+                        <div className="text-xs text-gray-400">₹{o.saving_inr_day?.toLocaleString()}</div>
+                      </div>
+                      <div className="text-right w-20">
+                        <div className="text-xs text-gray-400">Effort</div>
+                        <div className={`text-[10px] font-bold px-2 py-0.5 rounded mt-1 inline-block ${o.effort==='LOW'?'bg-[#00e676]/20 text-[#00e676]':o.effort==='MEDIUM'?'bg-[#ffa726]/20 text-[#ffa726]':'bg-[#ef5350]/20 text-[#ef5350]'}`}>{o.effort || 'UNKNOWN'}</div>
+                      </div>
+                      <button className="bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded text-xs text-white transition-colors">View PDCA</button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-6">
-                    <div className="text-right hidden md:block">
-                      <div className="text-xs text-gray-400">Potential</div>
-                      <div className="font-bold text-[#00e676] text-sm">{o.saving}</div>
-                    </div>
-                    <div className="text-right w-20">
-                      <div className="text-xs text-gray-400">Difficulty</div>
-                      <div className={`text-[10px] font-bold px-2 py-0.5 rounded mt-1 inline-block ${o.diff==='LOW'?'bg-[#00e676]/20 text-[#00e676]':o.diff==='MEDIUM'?'bg-[#ffa726]/20 text-[#ffa726]':'bg-[#ef5350]/20 text-[#ef5350]'}`}>{o.diff}</div>
-                    </div>
-                    <button className="bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded text-xs text-white transition-colors">View PDCA</button>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
          </div>
       </div>

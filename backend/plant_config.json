@@ -1,0 +1,47 @@
+{
+  "plant_name": "Mini Cement SME",
+  "departments": [
+    {
+      "code": "CRUSHER",
+      "name": "Crusher",
+      "production_tag": "CR-AF-FEED",
+      "power_tag": "CR-CR-PWR",
+      "max_capacity": 50.0
+    },
+    {
+      "code": "RAW_MILL",
+      "name": "Raw Mill",
+      "production_tag": "RM-FEED",
+      "power_tag": "RM-POWER",
+      "max_capacity": 30.0
+    },
+    {
+      "code": "KILN",
+      "name": "Rotary Kiln",
+      "production_tag": "KILN-CLINKER-PROD",
+      "power_tag": "KILN-POWER",
+      "max_capacity": 20.0
+    },
+    {
+      "code": "COOLER",
+      "name": "Cooler",
+      "production_tag": "KILN-CLINKER-PROD",
+      "power_tag": "CLR-POWER",
+      "max_capacity": 20.0
+    },
+    {
+      "code": "CEMENT_MILL",
+      "name": "Cement Mill",
+      "production_tag": "CM-FEED",
+      "power_tag": "CM-POWER",
+      "max_capacity": 15.0
+    },
+    {
+      "code": "PACKING",
+      "name": "Packing",
+      "production_tag": "CM-FEED",
+      "power_tag": "PACK-POWER",
+      "max_capacity": 15.0
+    }
+  ]
+}

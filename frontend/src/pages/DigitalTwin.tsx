@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ScadaShell } from '../components/scada/Layout/ScadaShell';
-import { startSimulation, stopSimulation } from '../engine/simulationEngine';
 import { LimestoneCrusherScreen } from '../screens/Crusher/LimestoneCrusherScreen';
 import { RawMillScreen } from '../screens/RawMill/RawMillScreen';
 import { CoalMillScreen } from '../screens/CoalMill/CoalMillScreen';
@@ -14,12 +13,6 @@ import { Settings } from 'lucide-react';
 
 const DigitalTwin: React.FC = () => {
   const [activeArea, setActiveArea] = useState('CR');
-
-  // Start simulation loop when Digital Twin mounts
-  useEffect(() => {
-    startSimulation();
-    return () => stopSimulation();
-  }, []);
 
   return (
     <ScadaShell activeArea={activeArea} setActiveArea={setActiveArea}>

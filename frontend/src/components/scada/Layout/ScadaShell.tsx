@@ -11,15 +11,15 @@ const TopNav = ({ activeArea, setActiveArea }: { activeArea: string, setActiveAr
     return () => clearInterval(timer);
   }, []);
 
-  const areas = ['HOME', 'CR', 'RM1', 'CM1', 'KILN FEED', 'KILN', 'COOLER', 'CT1', 'CM2', 'POWER', 'UTILITIES', 'HISTORIAN', 'REPORTS', 'ALARMS'];
+  const areas = ['HOME', 'CRUSHER', 'RAW MILL', 'KILN', 'COOLER', 'CEMENT MILL', 'PACKING', 'POWER', 'HISTORIAN', 'REPORTS', 'ALARMS'];
 
   return (
     <div className="bg-[#0f172a] text-white flex flex-col border-b border-gray-700 select-none">
       <div className="flex items-center justify-between px-4 py-1 text-xs border-b border-gray-800 bg-[#020617]">
         <div className="flex items-center gap-4">
-          <span className="font-bold text-gray-300">PLANT: INTEGRATED CEMENT PLANT</span>
+          <span className="font-bold text-gray-300">PLANT: MINI CEMENT PLANT</span>
           <span className="text-gray-400">USER: <span className="text-white">OPERATOR</span></span>
-          <span className="text-gray-400">MODE: <span className="text-[#00ff00]">AUTO</span></span>
+          <span className="text-gray-400">MODE: <span className="text-[#ffa726] px-2 py-0.5 bg-[#ffa726]/10 rounded border border-[#ffa726]/30 font-bold">SIMULATION MODE: DIGITAL TWIN</span></span>
         </div>
         <div className="flex items-center gap-4">
           <span className="font-mono text-[#00ff00]">{format(time, 'dd-MMM-yyyy HH:mm:ss')}</span>

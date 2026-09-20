@@ -89,15 +89,21 @@ def get_failure_risk(equipment_id: int, features: Dict[str, float]) -> Dict[str,
     score = health['health_score']
     risk = max(0, 100 - score) / 100.0
     
+    # Extract factors dynamically from SHAP
+    shap_vals = health.get('shap_values', {})
+    top_factors = [
+        {"factor": f"{k.replace('_', ' ').title()}", "contribution": round(abs(v), 2)}
+        for k, v in shap_vals.items()
+    ]
+    if not top_factors:
+        top_factors = [{"factor": "No model data available", "contribution": 0.0}]
+    
     return {
         "equipment_id": equipment_id,
         "failure_risk_score": float(risk),
         "risk_level": health['risk_level'],
         "estimated_rul_days": int(score * 0.5),
-        "top_factors": [
-            {"factor": "Increasing vibration trend", "contribution": 0.42},
-            {"factor": "Power deviation above baseline", "contribution": 0.31}
-        ],
+        "top_factors": top_factors,
         "confidence": health['confidence'],
-        "disclaimer": "PREDICTED - SIMULATED DATA"
+        "disclaimer": health['disclaimer']
     }

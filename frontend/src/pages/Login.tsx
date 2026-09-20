@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { api } from '../lib/api';
 import { 
@@ -75,12 +75,12 @@ export default function Login() {
           
           {/* Header */}
           <div className="flex items-start justify-between w-full">
-            <div className="flex items-center gap-2">
+            <Link to="/" className="flex items-center gap-2 group">
               <span className="font-bold text-2xl tracking-tight">Schneider</span>
               <span className="font-light text-2xl tracking-tight">Electric</span>
               <div className="w-px h-6 bg-white/30 mx-2"></div>
-              <span className="text-lg">Life Is On</span>
-            </div>
+              <span className="text-lg text-emerald-400 font-medium">Life Is On</span>
+            </Link>
           </div>
 
           {/* Hero Text */}
@@ -324,7 +324,7 @@ export default function Login() {
 
                   <button
                     type="button"
-                    className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-3 rounded-xl font-bold transition-all"
+                    className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-3 rounded-xl font-bold transition-all shadow-sm"
                   >
                     <svg viewBox="0 0 24 24" width="20" height="20">
                       <path fill="#f35325" d="M1 1h10v10H1z"/>
@@ -335,6 +335,14 @@ export default function Login() {
                     Continue with Microsoft
                   </button>
 
+                  <div className="mt-6 text-center">
+                    <p className="text-xs text-gray-500 font-medium">
+                      Need plant access?{' '}
+                      <Link to="/signup" className="text-[#106c35] font-bold hover:underline">
+                        Create Plant Account
+                      </Link>
+                    </p>
+                  </div>
                 </form>
               )}
 

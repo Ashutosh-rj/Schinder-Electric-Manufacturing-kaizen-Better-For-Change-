@@ -29,12 +29,21 @@ async def analyze_symptoms(req: AnalyzeRequest):
     if area_alarms:
         alarm = area_alarms[0]
         issue = alarm.get("description", "Unknown issue")
+        severity = alarm.get("severity", "MEDIUM").upper()
+        
         why1 = alarm.get("why_occurred", "Process parameters deviated from normal operating envelope.")
         causes = alarm.get("possible_causes", [])
         why2 = causes[0] if causes else "Underlying mechanical or process instability."
-        why3 = "Operational parameters not optimized for current feed conditions."
-        why4 = "Lack of real-time compensation in control loops."
-        why5 = "Manual intervention required instead of automated setpoint adjustment."
+        
+        # Make whys 3-5 conditional based on severity and area
+        if severity == "CRITICAL":
+            why3 = f"[SIMULATED] Rapid deterioration of {req.area} components due to sustained stress."
+            why4 = f"[SIMULATED] Failure to trigger preventative interlocks during transient spikes."
+            why5 = f"[SIMULATED] Systemic gap in early-warning anomaly detection for {req.area}."
+        else:
+            why3 = f"[SIMULATED] Operational parameters in {req.area} not continuously optimized."
+            why4 = f"[SIMULATED] Lack of real-time compensation in local control loops."
+            why5 = f"[SIMULATED] Manual intervention relied upon instead of closed-loop setpoint adjustment."
         
         base.update({
             "area": req.area,

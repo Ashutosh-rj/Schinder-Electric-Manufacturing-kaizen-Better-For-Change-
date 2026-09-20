@@ -48,6 +48,12 @@ class Settings(BaseSettings):
     CO2_EMISSION_FACTOR_GRID: float = 0.82
     CO2_EMISSION_FACTOR_COAL: float = 95.0
 
+    # Business Case & ROI Config (Default values for SME)
+    CAPEX_SENSOR_COST: float = 60000.0       # 5 sensors @ 12k
+    CAPEX_GATEWAY_COST: float = 45000.0      # Edge IPC
+    CAPEX_INSTALL_COST: float = 25000.0      # Misc installation
+    OPEX_SAAS_MONTHLY: float = 35000.0       # Monthly SaaS subscription
+
     # CORS
     CORS_ORIGINS: List[str] = ["*"]
 

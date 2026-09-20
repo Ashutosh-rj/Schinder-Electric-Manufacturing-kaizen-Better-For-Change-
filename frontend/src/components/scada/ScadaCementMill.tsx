@@ -42,16 +42,12 @@ const ScadaCementMill = () => {
       
       {/* Top Navigation (Classic Green Bar) */}
       <div className="h-6 bg-[#39ff14] flex items-center text-black text-[10px] font-bold overflow-x-auto px-1 gap-1">
-        <div className="px-2 py-0.5 hover:bg-white cursor-pointer">CR</div>
-        <div className="px-2 py-0.5 hover:bg-white cursor-pointer">RM1</div>
-        <div className="px-2 py-0.5 hover:bg-white cursor-pointer">RM2</div>
-        <div className="px-2 py-0.5 hover:bg-white cursor-pointer">KM1</div>
-        <div className="px-2 py-0.5 hover:bg-white cursor-pointer">KM2</div>
+        <div className="px-2 py-0.5 hover:bg-white cursor-pointer">CRUSHER</div>
+        <div className="px-2 py-0.5 hover:bg-white cursor-pointer">RAW MILL</div>
         <div className="px-2 py-0.5 hover:bg-white cursor-pointer">KILN</div>
-        <div className="px-2 py-0.5 hover:bg-white cursor-pointer">KILN FEED</div>
         <div className="px-2 py-0.5 hover:bg-white cursor-pointer">COOLER</div>
-        <div className="px-2 py-0.5 bg-white border border-black cursor-pointer">CM1</div>
-        <div className="px-2 py-0.5 hover:bg-white cursor-pointer">CM2</div>
+        <div className="px-2 py-0.5 bg-white border border-black cursor-pointer">CEMENT MILL</div>
+        <div className="px-2 py-0.5 hover:bg-white cursor-pointer">PACKING</div>
         <div className="flex-1"></div>
         <div className="flex gap-2 bg-gray-300 px-2 rounded-sm border border-gray-500">
            <span>PLANT <span className="text-green-700">23.27 MW</span></span>
