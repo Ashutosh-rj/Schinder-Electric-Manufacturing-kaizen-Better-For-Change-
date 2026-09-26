@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import ReactECharts from 'echarts-for-react';
 import { Zap, Target, TrendingDown, Clock, Lightbulb } from 'lucide-react';
 import { api } from '../lib/api';
@@ -142,7 +143,12 @@ const Energy: React.FC = () => {
             <ReactECharts option={barOption} style={{ height: '350px' }} />
          </div>
          <div className="col-span-6 bg-[#1a2540] p-4 rounded-lg">
-            <h3 className="font-bold mb-4 flex items-center gap-2"><Lightbulb className="text-[#ffa726]"/> Recommended Optimizations</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold flex items-center gap-2"><Lightbulb className="text-[#ffa726]"/> Recommended Optimizations</h3>
+              <Link to="/optimization" className="text-xs bg-[#00d4ff] text-[#0a0e1a] px-3 py-1 rounded font-bold hover:bg-[#00b4d8] transition-colors shadow-sm">
+                Run Mill & Fan AI Optimizer →
+              </Link>
+            </div>
             <div className="space-y-4">
                <div className="bg-[#0a0e1a] p-4 border border-[#ef5350]/30 rounded">
                   <div className="font-bold text-[#ef5350]">Cement Mill 1 - Reduce Separator Speed</div>

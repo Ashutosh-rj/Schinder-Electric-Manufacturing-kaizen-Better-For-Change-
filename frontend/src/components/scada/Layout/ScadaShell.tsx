@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { useScadaStore } from '../../../store/scadaStore';
+import { normalizeArea } from '../../../pages/DigitalTwin';
 
 const TopNav = ({ activeArea, setActiveArea }: { activeArea: string, setActiveArea: (a: string) => void }) => {
   const [time, setTime] = useState(new Date());
@@ -11,39 +12,61 @@ const TopNav = ({ activeArea, setActiveArea }: { activeArea: string, setActiveAr
     return () => clearInterval(timer);
   }, []);
 
-  const areas = ['HOME', 'CRUSHER', 'RAW MILL', 'KILN', 'COOLER', 'CEMENT MILL', 'PACKING', 'POWER', 'HISTORIAN', 'REPORTS', 'ALARMS'];
+  const areas = [
+    { label: 'PLANT OVERVIEW (P&ID)', id: 'HOME' },
+    { label: '1. CRUSHER', id: 'CR' },
+    { label: '2. RAW MILL (VRM)', id: 'RM1' },
+    { label: '3. COAL MILL', id: 'CM1' },
+    { label: '4. PREHEATER & KILN', id: 'KILN' },
+    { label: '5. GRATE COOLER', id: 'COOLER' },
+    { label: '6. CLINKER TRANSPORT', id: 'CT1' },
+    { label: '7. CEMENT BALL MILL', id: 'CM2' },
+    { label: '8. WHRS POWER', id: 'POWER' },
+    { label: '9. PACKING & DISPATCH', id: 'PACKING' },
+    { label: 'HISTORIAN', id: 'HISTORIAN' },
+    { label: 'ALARMS & EVENTS', id: 'ALARMS' },
+  ];
 
   return (
     <div className="bg-[#0f172a] text-white flex flex-col border-b border-gray-700 select-none">
-      <div className="flex items-center justify-between px-4 py-1 text-xs border-b border-gray-800 bg-[#020617]">
+      <div className="flex items-center justify-between px-4 py-1.5 text-xs border-b border-gray-800 bg-[#020617]">
         <div className="flex items-center gap-4">
-          <span className="font-bold text-gray-300">PLANT: MINI CEMENT PLANT</span>
-          <span className="text-gray-400">USER: <span className="text-white">OPERATOR</span></span>
-          <span className="text-gray-400">MODE: <span className="text-[#ffa726] px-2 py-0.5 bg-[#ffa726]/10 rounded border border-[#ffa726]/30 font-bold">SIMULATION MODE: DIGITAL TWIN</span></span>
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#106c35]" />
+            <span className="font-extrabold text-white">SCHNEIDER EcoStruxure™ PLANT SCADA</span>
+          </div>
+          <span className="text-gray-400">UNIT: <span className="text-white font-bold">3,000 TPD CEMENT PLANT</span></span>
+          <span className="text-gray-400">OPERATOR: <span className="text-white">CCR LEAD CHIEF</span></span>
+          <span className="text-gray-400">MODE: <span className="text-[#00e676] px-2 py-0.5 bg-[#00e676]/10 rounded border border-[#00e676]/30 font-bold">INDUSTRIAL DIGITAL TWIN • CLOSED LOOP</span></span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="font-mono text-[#00ff00]">{format(time, 'dd-MMM-yyyy HH:mm:ss')}</span>
+          <span className="font-mono text-[#00ff00] font-bold">{format(time, 'dd-MMM-yyyy HH:mm:ss')}</span>
           <div className="flex items-center gap-2">
-            <span className="text-gray-400">SYSTEM HEALTH</span>
-            <span className="text-[#00ff00] font-bold">ALL OK</span>
-            <div className="w-3 h-3 rounded-full bg-[#00ff00] shadow-[0_0_5px_#00ff00] animate-pulse" />
+            <span className="text-gray-400">SYSTEM HEALTH:</span>
+            <span className="text-[#00ff00] font-bold">OPTIMAL</span>
+            <div className="w-2.5 h-2.5 rounded-full bg-[#00ff00] shadow-[0_0_8px_#00ff00] animate-pulse" />
           </div>
         </div>
       </div>
-      <div className="flex overflow-x-auto text-xs font-bold">
-        {areas.map(a => (
-          <div 
-            key={a} 
-            onClick={() => setActiveArea(a)}
-            className={`px-4 py-2 cursor-pointer border-r border-gray-700 transition-colors ${
-              activeArea === a 
-                ? 'bg-[#1e293b] text-[#00ff00] border-b-2 border-b-[#00ff00]' 
-                : 'hover:bg-[#1e293b] text-gray-400'
-            }`}
-          >
-            {a}
-          </div>
-        ))}
+      
+      {/* AREA NAVIGATION TABS */}
+      <div className="flex overflow-x-auto text-xs font-bold bg-[#090d16] border-b border-gray-800 custom-scrollbar">
+        {areas.map(a => {
+          const isSelected = activeArea === a.id || normalizeArea(activeArea) === normalizeArea(a.id);
+          return (
+            <div 
+              key={a.id} 
+              onClick={() => setActiveArea(a.id)}
+              className={`px-4 py-2 cursor-pointer border-r border-gray-800 whitespace-nowrap transition-colors ${
+                isSelected 
+                  ? 'bg-[#1e293b] text-[#00ff00] border-b-2 border-b-[#00ff00] shadow-sm font-extrabold' 
+                  : 'hover:bg-[#1e293b]/70 text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              {a.label}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -54,15 +77,18 @@ const BottomPanel = () => {
   const activeAlarms = alarms.filter(a => a.active);
 
   return (
-    <div className="h-8 bg-[#0f172a] border-t border-gray-700 flex items-center justify-between px-4 text-[10px] select-none">
-      <div className="flex items-center gap-2 text-gray-400">
-        <div className={`w-3 h-3 rounded-full ${activeAlarms.length > 0 ? 'bg-red-500 animate-pulse shadow-[0_0_5px_red]' : 'bg-[#00ff00]'}`} />
-        <span>{activeAlarms.length > 0 ? `${activeAlarms.length} UNACKNOWLEDGED CRITICAL ALARMS` : 'NO UNACKNOWLEDGED CRITICAL ALARMS'}</span>
+    <div className="h-8 bg-[#070b14] border-t border-gray-800 flex items-center justify-between px-4 text-[10px] select-none text-gray-400">
+      <div className="flex items-center gap-2">
+        <div className={`w-2.5 h-2.5 rounded-full ${activeAlarms.length > 0 ? 'bg-red-500 animate-pulse shadow-[0_0_8px_red]' : 'bg-[#00ff00]'}`} />
+        <span className={activeAlarms.length > 0 ? 'text-red-400 font-bold' : 'text-gray-400'}>
+          {activeAlarms.length > 0 ? `${activeAlarms.length} ACTIVE PROCESS ALARMS / SAFETY INTERLOCKS PENDING` : 'ALL SAFETY INTERLOCKS SATISFIED • NO UNACKNOWLEDGED CRITICAL ALARMS'}
+        </span>
       </div>
-      <div className="flex items-center gap-4 text-gray-400">
-        <span>SCADA ENGINE v2.0</span>
-        <span>WS: CONNECTED</span>
-        <span>DB: CONNECTED</span>
+      <div className="flex items-center gap-5 font-mono">
+        <span>ISA-101 / IEC-62443 HMI</span>
+        <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[#00ff00]" /> DCS WS: ONLINE</span>
+        <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[#00ff00]" /> KAFKA: HEALTHY</span>
+        <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[#00ff00]" /> TIMESCALE: CONNECTED</span>
       </div>
     </div>
   );
@@ -70,9 +96,9 @@ const BottomPanel = () => {
 
 export const ScadaShell = ({ children, activeArea, setActiveArea }: any) => {
   return (
-    <div className="flex flex-col w-screen h-screen bg-[#1e293b] overflow-hidden font-sans">
+    <div className="flex flex-col w-full h-full bg-[#0f172a] overflow-hidden font-sans">
       <TopNav activeArea={activeArea} setActiveArea={setActiveArea} />
-      <div className="flex-1 relative overflow-hidden bg-[#0f172a] m-1 rounded border border-gray-700 shadow-inner">
+      <div className="flex-1 relative overflow-hidden bg-[#0b1320]">
         {children}
       </div>
       <BottomPanel />

@@ -1,105 +1,188 @@
 import React from 'react';
-import { ProcessValue } from '../../components/scada/Tags/ProcessValue';
-import { Motor, VRM, Hopper, BagFilter, Fan, Silo, ConveyorBelt } from '../../components/scada/Equipment/EquipmentComponents';
+import { useScadaStore } from '../../store/scadaStore';
+import { 
+  VerticalRollerMillUnit, PulseJetBaghouseUnit, CentrifugalFanUnit, 
+  IndustrialPipe, ISAInstrumentTag 
+} from '../../components/scada/Equipment/IndustrialPlantComponents';
 
-export const CoalMillScreen = () => {
+interface ScreenProps {
+  onOpenFaceplate?: (eqId: string) => void;
+}
+
+export const CoalMillScreen: React.FC<ScreenProps> = ({ onOpenFaceplate }) => {
+  const tags = useScadaStore((s) => s.tags);
+
+  const handleEqClick = (id: string) => {
+    if (onOpenFaceplate) onOpenFaceplate(id);
+  };
+
   return (
-    <div className="w-full h-full relative">
-      <svg className="absolute top-0 left-0 w-full h-full pointer-events-none" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+    <div className="w-full h-full relative bg-[#0b1320] text-white overflow-hidden select-none font-sans">
+      
+      {/* SECTION HEADER & CONTROL BAR */}
+      <div className="flex items-center justify-between px-6 py-2 bg-[#070b14] border-b border-gray-800 text-xs">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-cyan-400 font-bold px-2 py-0.5 bg-black/60 rounded border border-cyan-500/30">
+              AREA-300
+            </span>
+            <span className="text-sm font-extrabold text-white">COAL GRINDING & PULVERIZED FUEL INJECTION (ATEX ZONE 20/21)</span>
+          </div>
+          <span className="text-gray-400 font-mono text-[11px]">INERT ATMOSPHERE • CO/O2 ANALYZER • PFISTER ROTOR WEIGH FEEDER</span>
+        </div>
+
+        <div className="flex items-center gap-6 font-mono text-[11px]">
+          <div>COAL FEED: <span className="text-[#00ff00] font-bold">{(tags['CM1-FEED'] || 28.5).toFixed(1)} t/h</span></div>
+          <div>KILN INJECTION: <span className="text-amber-400 font-bold">{(tags['CM1-INJ-KILN'] || 11.8).toFixed(1)} t/h</span></div>
+          <div>CALCINER INJECTION: <span className="text-orange-400 font-bold">{(tags['CM1-INJ-CALC'] || 16.2).toFixed(1)} t/h</span></div>
+          <div>O2 CONC: <span className="text-[#00ff00] font-bold">{(tags['CM1-O2-CONC'] || 5.2).toFixed(1)} % vol</span></div>
+          <div>CO CONC: <span className="text-[#00d4ff] font-bold">{(tags['CM1-CO-CONC'] || 85).toFixed(0)} ppm</span></div>
+        </div>
+      </div>
+
+      {/* SVG SCHEMATIC - REAL COAL MILL PLANT WORKING PARTS */}
+      <svg className="w-full h-full" viewBox="0 0 1600 780" preserveAspectRatio="xMidYMid meet">
         
-        {/* --- HOT GAS DUCTING --- */}
-        <path d="M 0 600 L 400 600 L 400 500" fill="none" stroke="#ef4444" strokeWidth="16" opacity="0.8" />
+        {/* DUCTING & MATERIAL PIPES */}
+        {/* Hot Inert Gas from Kiln Smoke Chamber */}
+        <IndustrialPipe d="M 60 520 L 320 520 L 320 460" media="HOT_GAS" strokeWidth="14" />
         
-        {/* --- MILL DUCTING TO FILTER --- */}
-        <path d="M 400 300 L 400 200 L 800 200 L 800 350" fill="none" stroke="#334155" strokeWidth="20" opacity="0.9" />
+        {/* Mill Outlet to Coal Baghouse */}
+        <IndustrialPipe d="M 440 210 L 440 140 L 780 140 L 780 220" media="PULVERIZED_COAL" strokeWidth="14" />
 
-        {/* --- FILTER TO FAN DUCTING --- */}
-        <path d="M 920 390 L 1050 390 L 1050 500" fill="none" stroke="#334155" strokeWidth="16" opacity="0.8" />
-        <path d="M 1050 550 L 1050 650 L 1600 650" fill="none" stroke="#334155" strokeWidth="16" opacity="0.8" />
+        {/* Pneumatic Injection Pipe to Kiln Main Burner */}
+        <IndustrialPipe d="M 1250 540 L 1450 540" media="PULVERIZED_COAL" strokeWidth="10" />
+        <text x="1350" y="530" fill="#f97316" fontSize="9" fontWeight="bold">TO KILN BURNER PIPE</text>
 
-        {/* --- COAL BUNKER & WEIGH FEEDER --- */}
-        <Hopper x="250" y="100" width="120" height="150" label="RAW COAL" />
-        <ConveyorBelt id="CM1-WF-01" x="220" y="270" length="180" />
+        {/* Pneumatic Injection Pipe to Calciner Burners */}
+        <IndustrialPipe d="M 1250 565 L 1450 565" media="PULVERIZED_COAL" strokeWidth="10" />
+        <text x="1350" y="585" fill="#f97316" fontSize="9" fontWeight="bold">TO CALCINER BURNERS</text>
 
-        {/* --- VERTICAL ROLLER MILL (COAL MILL) --- */}
-        <VRM id="CM1-VRM-01" x="400" y="400" scale={1.5} />
-        <Motor id="CM1-VRM-01" x="320" y="520" scale={1.5} />
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* 1. RAW COAL BUNKER & EXPLOSION-PROOF WEIGH FEEDER */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        <g transform="translate(100, 120)">
+          {/* Reinforced Coal Bunker with ultrasonic level */}
+          <polygon points="0,0 90,0 75,90 15,90" fill="#1e293b" stroke="#f59e0b" strokeWidth="2.5" />
+          <rect x="0" y="-18" width="90" height="18" fill="#334155" stroke="#f59e0b" />
+          <text x="45" y="-6" fill="#facc15" fontSize="8" fontWeight="bold" textAnchor="middle">RAW COAL BUNKER</text>
 
-        {/* --- BAG FILTER (ATEX DESIGN) --- */}
-        <BagFilter id="CM1-DC-01" x="800" y="350" />
-        {/* Explosion Vent indicator */}
-        <polygon points="850,340 870,340 860,320" fill="#ef4444" />
-        
-        {/* --- ID FAN --- */}
-        <Fan id="CM1-FAN-01" x="1050" y="525" scale={1.5} />
-        <Motor id="CM1-FAN-01" x="1100" y="525" scale={1.2} />
+          {/* Coal Fill level */}
+          <polygon points="18,30 72,30 65,85 25,85" fill="#0f172a" />
+          <circle cx="45" cy="50" r="5" fill="#475569" />
 
-        {/* --- FINE COAL SILO (ATEX) --- */}
-        <Silo x="1250" y="150" width="150" height="300" levelTag="CM1-SILO-LVL" label="FINE COAL" />
-        <path d="M 860 470 L 860 550 L 1200 550 L 1200 100 L 1325 100 L 1325 150" fill="none" stroke="#334155" strokeWidth="8" />
+          {/* Explosion Proof Gravimetric Belt Feeder Enclosure */}
+          <g transform="translate(10, 95)">
+            <rect x="0" y="0" width="70" height="30" fill="#0b1320" stroke="#f59e0b" strokeWidth="1.5" rx="3" />
+            <text x="35" y="14" fill="#facc15" fontSize="7" fontWeight="bold" textAnchor="middle">EXP-PROOF FEEDER</text>
+            <text x="35" y="24" fill="#00ff00" fontSize="8" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+              {(tags['CM1-FEED'] || 28.5).toFixed(1)} t/h
+            </text>
+          </g>
 
-        {/* --- INJECTION LINES --- */}
-        <path d="M 1325 450 L 1325 700 L 1600 700" fill="none" stroke="#0f172a" strokeWidth="8" />
-        <path d="M 1325 450 L 1325 800 L 1600 800" fill="none" stroke="#0f172a" strokeWidth="8" />
-        
-        {/* Blowers */}
-        <Fan id="CM1-BLW-01" x="1450" y="700" scale={0.8} />
-        <Fan id="CM1-BLW-02" x="1450" y="800" scale={0.8} />
+          {/* Triple-Gate Inerting Flap Chute into Mill */}
+          <line x1="45" y1="125" x2="220" y2="240" stroke="#475569" strokeWidth="10" strokeLinecap="round" />
+        </g>
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* 2. COAL VRM WITH EXPLOSION RELIEF VENTS */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        <g transform="translate(440, 360)">
+          <VerticalRollerMillUnit 
+            id="CM1-VRM-01" 
+            x={0} 
+            y={0} 
+            scale={1.05} 
+            onClick={handleEqClick} 
+          />
+          {/* ATEX Explosion Rupture Disc / Relief Door on Mill Top */}
+          <g transform="translate(55, -45)">
+            <rect x="0" y="0" width="20" height="12" fill="#ef4444" stroke="#ffffff" strokeWidth="1.5" rx="1" />
+            <text x="10" y="8" fill="#ffffff" fontSize="6" fontWeight="bold" textAnchor="middle">RUPTURE</text>
+          </g>
+        </g>
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* 3. COAL PROCESS BAGHOUSE (INERTED ATMOSPHERE) */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        <PulseJetBaghouseUnit 
+          id="CM1-DC-01" 
+          x={740} 
+          y={200} 
+          scale={1.0} 
+        />
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* 4. FINE COAL BIN & PFISTER ROTOR WEIGH FEEDERS */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        <g transform="translate(1080, 240)">
+          {/* Cylindrical fine coal storage bin with load cells */}
+          <rect x="0" y="0" width="100" height="140" fill="#1e293b" stroke="#f59e0b" strokeWidth="2.5" rx="4" />
+          <polygon points="0,140 100,140 75,190 25,190" fill="#334155" stroke="#f59e0b" strokeWidth="2" />
+          <text x="50" y="30" fill="#facc15" fontSize="10" fontWeight="extrabold" textAnchor="middle">FINE COAL BIN</text>
+          <text x="50" y="50" fill="#ffffff" fontSize="12" fontWeight="black" fontFamily="monospace" textAnchor="middle">
+            {(tags['CM1-BUNKER-LVL'] || 62).toFixed(1)}%
+          </text>
+          <text x="50" y="70" fill="#00ff00" fontSize="8" fontFamily="monospace" textAnchor="middle">
+            INERT N2 PURGED
+          </text>
+
+          {/* Pfister Rotor Weigh Feeder 1 (to Kiln Burner) */}
+          <g transform="translate(10, 205)">
+            <circle cx="15" cy="15" r="14" fill="#0b1320" stroke="#38bdf8" strokeWidth="2" />
+            <text x="15" y="18" fill="#38bdf8" fontSize="8" fontWeight="bold" textAnchor="middle">PFISTER 1</text>
+          </g>
+
+          {/* Pfister Rotor Weigh Feeder 2 (to Calciner) */}
+          <g transform="translate(60, 205)">
+            <circle cx="15" cy="15" r="14" fill="#0b1320" stroke="#f59e0b" strokeWidth="2" />
+            <text x="15" y="18" fill="#f59e0b" fontSize="8" fontWeight="bold" textAnchor="middle">PFISTER 2</text>
+          </g>
+        </g>
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* 5. EMERGENCY CO2 / N2 INERTING FIRE SUPPRESSION MANIFOLD */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        <g transform="translate(650, 520)">
+          <rect x="0" y="0" width="160" height="50" fill="#0f172a" stroke="#ef4444" strokeWidth="2" rx="4" />
+          <text x="80" y="16" fill="#ef4444" fontSize="9" fontWeight="extrabold" textAnchor="middle">
+            CO2/N2 INERTING FIRE SYSTEM
+          </text>
+          <div className="flex gap-4">
+            <text x="35" y="32" fill="#38bdf8" fontSize="8" fontFamily="monospace">STATUS: ARMED</text>
+            <text x="110" y="32" fill="#00ff00" fontSize="8" fontFamily="monospace">MANIFOLD: 180 BAR</text>
+          </div>
+          <circle cx="20" cy="30" r="4" fill="#00ff00" />
+        </g>
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* 6. REAL-TIME ISA INSTRUMENTATION BUBBLE TAGS */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        <ISAInstrumentTag tag="CM1-IN-TEMP" isaCode="TI" unit="°C" x={240} y={480} />
+        <ISAInstrumentTag tag="CM1-OUT-TEMP" isaCode="TI" unit="°C" x={440} y={150} />
+        <ISAInstrumentTag tag="CM1-O2-CONC" isaCode="AI" unit="%" x={900} y={170} alarm="NORMAL" />
+        <ISAInstrumentTag tag="CM1-CO-CONC" isaCode="AI" unit="ppm" x={900} y={230} />
+        <ISAInstrumentTag tag="CM1-PWR" isaCode="II" unit="kW" x={340} y={380} />
+        <ISAInstrumentTag tag="CM1-INJ-KILN" isaCode="FI" unit="t/h" x={1260} y={470} />
+        <ISAInstrumentTag tag="CM1-INJ-CALC" isaCode="FI" unit="t/h" x={1260} y={630} />
 
       </svg>
 
-      {/* --- DATA BOXES --- */}
-      
-      {/* COAL FEED */}
-      <div className="absolute top-[280px] left-[50px] bg-[#0a0f1c]/90 border border-gray-600 rounded p-3 text-[11px] w-[180px]">
-         <div className="text-[#00d4ff] font-bold mb-2 border-b border-gray-700 pb-1">WEIGH FEEDER</div>
-         <div className="flex justify-between"><span className="text-gray-400">Feed Rate</span><ProcessValue tag="CM1-FEED" unit="t/h" /></div>
+      {/* ATEX SAFETY BARRIER OVERLAY */}
+      <div className="absolute bottom-3 left-4 flex gap-3">
+        <div className="bg-[#0f172a]/95 border border-red-500/50 p-2.5 rounded-lg text-xs font-mono">
+          <div className="text-[10px] text-red-400 uppercase font-bold font-sans flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+            ATEX ZONE 20/21 EXPLOSION PROTECTION INTERLOCKS
+          </div>
+          <div className="flex gap-4 mt-1">
+            <span>O2 CONCENTRATION: <span className="text-[#00ff00] font-bold">{(tags['CM1-O2-CONC'] || 5.2).toFixed(1)} % (TRIP &gt; 8.0%)</span></span>
+            <span>CO LEVEL: <span className="text-[#00ff00] font-bold">{(tags['CM1-CO-CONC'] || 85).toFixed(0)} ppm (TRIP &gt; 300)</span></span>
+            <span>OUTLET TEMP: <span className="text-[#00ff00] font-bold">{(tags['CM1-OUT-TEMP'] || 68.5).toFixed(1)} °C (TRIP &gt; 75°C)</span></span>
+          </div>
+        </div>
       </div>
 
-      {/* VRM DATA */}
-      <div className="absolute top-[500px] left-[150px] bg-[#0a0f1c]/90 border border-gray-600 rounded p-3 text-[11px] w-[200px]">
-         <div className="text-[#00d4ff] font-bold mb-2 border-b border-gray-700 pb-1">COAL MILL</div>
-         <div className="flex justify-between"><span className="text-gray-400">Power</span><ProcessValue tag="CM1-PWR" unit="kW" fractionDigits={0} /></div>
-         <div className="flex justify-between"><span className="text-gray-400">Diff Press</span><ProcessValue tag="CM1-DP" unit="Pa" fractionDigits={0} /></div>
-      </div>
-
-      {/* GAS DATA */}
-      <div className="absolute top-[600px] left-[450px] bg-[#0a0f1c]/90 border border-gray-600 p-2 text-[11px] w-[150px]">
-         <div className="text-red-400 font-bold border-b border-gray-700 pb-1 mb-1">HOT GAS INLET</div>
-         <div className="flex justify-between"><span className="text-gray-400">Temp</span><ProcessValue tag="CM1-IN-TEMP" unit="°C" color="#ef4444" /></div>
-      </div>
-      
-      <div className="absolute top-[150px] left-[450px] bg-[#0a0f1c]/90 border border-gray-600 p-2 text-[11px] w-[150px]">
-         <div className="text-green-400 font-bold border-b border-gray-700 pb-1 mb-1">GAS OUTLET</div>
-         <div className="flex justify-between"><span className="text-gray-400">Temp</span><ProcessValue tag="CM1-OUT-TEMP" unit="°C" /></div>
-      </div>
-
-      {/* ATEX SAFETY PANEL */}
-      <div className="absolute top-[280px] left-[950px] bg-[#0a0f1c]/90 border-2 border-red-900 rounded p-3 text-[11px] w-[200px] shadow-[0_0_10px_rgba(239,68,68,0.2)]">
-         <div className="text-red-500 font-bold mb-2 border-b border-red-900 pb-1 flex items-center gap-2">
-            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            ATEX SAFETY MONITOR
-         </div>
-         <div className="flex justify-between"><span className="text-gray-400">CO Conc.</span><ProcessValue tag="CM1-CO-PPM" unit="ppm" color="#ef4444" /></div>
-         <div className="flex justify-between"><span className="text-gray-400">O2 Conc.</span><ProcessValue tag="CM1-O2-PCT" unit="%" /></div>
-      </div>
-
-      {/* SILO LEVEL */}
-      <div className="absolute top-[100px] left-[1420px] bg-[#0a0f1c]/90 border border-gray-600 p-2 text-[11px] w-[140px]">
-         <div className="text-[#00d4ff] font-bold border-b border-gray-700 pb-1 mb-1">SILO LEVEL</div>
-         <div className="flex justify-between"><span className="text-gray-400">Level</span><ProcessValue tag="CM1-SILO-LVL" unit="%" color="#00ff00" /></div>
-      </div>
-
-      {/* INJECTION */}
-      <div className="absolute top-[650px] left-[1450px] bg-[#0a0f1c]/90 border border-gray-600 p-2 text-[11px] w-[140px]">
-         <div className="text-[#00d4ff] font-bold border-b border-gray-700 pb-1 mb-1">KILN BURNER</div>
-         <div className="flex justify-between"><span className="text-gray-400">Feed</span><ProcessValue tag="CM1-INJ-KILN" unit="t/h" /></div>
-      </div>
-      <div className="absolute top-[750px] left-[1450px] bg-[#0a0f1c]/90 border border-gray-600 p-2 text-[11px] w-[140px]">
-         <div className="text-[#00d4ff] font-bold border-b border-gray-700 pb-1 mb-1">CALCINER</div>
-         <div className="flex justify-between"><span className="text-gray-400">Feed</span><ProcessValue tag="CM1-INJ-CALC" unit="t/h" /></div>
-      </div>
-      
     </div>
   );
 };

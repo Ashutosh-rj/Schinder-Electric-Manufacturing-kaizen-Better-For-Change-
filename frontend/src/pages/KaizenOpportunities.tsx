@@ -1,25 +1,26 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Lightbulb, TrendingUp, CheckCircle, Clock } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
+import { api } from '../lib/api';
 
 const KaizenOpportunities = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('/api/v1/kaizen');
-        if (response.ok) {
-          const result = await response.json();
-          setData(result);
-        }
+        const response = await api.get('/kaizen');
+        setData(response.data);
       } catch (err) {
         console.error("Failed to fetch kaizen opportunities", err);
       } finally {
         setLoading(false);
       }
     };
+
     fetchData();
     // Refresh every 30 seconds
     const interval = setInterval(fetchData, 30000);
@@ -123,9 +124,15 @@ const KaizenOpportunities = () => {
                         <div className="text-xs text-gray-400">Effort</div>
                         <div className={`text-[10px] font-bold px-2 py-0.5 rounded mt-1 inline-block ${o.effort==='LOW'?'bg-[#00e676]/20 text-[#00e676]':o.effort==='MEDIUM'?'bg-[#ffa726]/20 text-[#ffa726]':'bg-[#ef5350]/20 text-[#ef5350]'}`}>{o.effort || 'UNKNOWN'}</div>
                       </div>
-                      <button className="bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded text-xs text-white transition-colors">View PDCA</button>
+                      <button 
+                        onClick={() => navigate(`/kaizen-projects?id=${o.id && o.id.startsWith('KAI-3') ? o.id : 'KAI-3001'}`)}
+                        className="bg-emerald-600 hover:bg-emerald-700 font-bold px-3 py-1.5 rounded text-xs text-white transition-all shadow-sm"
+                      >
+                        View Project Dossier
+                      </button>
                     </div>
                   </div>
+
                 ))
               )}
             </div>

@@ -13,6 +13,7 @@ import LandingPage from './pages/LandingPage';
 const Overview = lazy(() => import('./pages/Overview'));
 const DigitalTwin = lazy(() => import('./pages/DigitalTwin'));
 const Energy = lazy(() => import('./pages/Energy'));
+const Optimization = lazy(() => import('./pages/Optimization'));
 const Process = lazy(() => import('./pages/Process'));
 const EquipmentHealth = lazy(() => import('./pages/EquipmentHealth'));
 const PredictiveMaintenance = lazy(() => import('./pages/PredictiveMaintenance'));
@@ -32,6 +33,10 @@ const RootCauseAnalysis = lazy(() => import('./pages/RootCauseAnalysis'));
 const ImprovementVerification = lazy(() => import('./pages/ImprovementVerification'));
 const KaizenDatabase = lazy(() => import('./pages/KaizenDatabase'));
 const OnePointLessons = lazy(() => import('./pages/OnePointLessons'));
+const WhatIfSimulator = lazy(() => import('./pages/WhatIfSimulator'));
+const KaizenCopilot = lazy(() => import('./pages/KaizenCopilot'));
+
+
 
 // Fallback loader
 const PageLoader = () => (
@@ -69,9 +74,13 @@ export default function App() {
             
             {/* Energy & Sustainability */}
             <Route path="energy" element={<Suspense fallback={<PageLoader />}><Energy /></Suspense>} />
+            <Route path="optimization" element={<Suspense fallback={<PageLoader />}><Optimization /></Suspense>} />
             <Route path="emissions" element={<Suspense fallback={<PageLoader />}><Emissions /></Suspense>} />
             <Route path="whrs" element={<Suspense fallback={<PageLoader />}><WHRS /></Suspense>} />
             <Route path="captive-power" element={<Suspense fallback={<PageLoader />}><CaptivePower /></Suspense>} />
+            <Route path="what-if" element={<Suspense fallback={<PageLoader />}><WhatIfSimulator /></Suspense>} />
+            <Route path="simulation" element={<Suspense fallback={<PageLoader />}><WhatIfSimulator /></Suspense>} />
+
 
             {/* Asset Intelligence */}
             <Route path="equipment-health" element={<Suspense fallback={<PageLoader />}><EquipmentHealth /></Suspense>} />
@@ -84,7 +93,9 @@ export default function App() {
             <Route path="kaizen" element={<Suspense fallback={<PageLoader />}><KaizenOpportunities /></Suspense>} />
             <Route path="rca" element={<Suspense fallback={<PageLoader />}><RootCauseAnalysis /></Suspense>} />
             <Route path="kaizen-projects" element={<Suspense fallback={<PageLoader />}><KaizenProjects /></Suspense>} />
+            <Route path="copilot" element={<Suspense fallback={<PageLoader />}><KaizenCopilot /></Suspense>} />
             <Route path="verification" element={<Suspense fallback={<PageLoader />}><ImprovementVerification /></Suspense>} />
+
             <Route path="kaizen-db" element={<Suspense fallback={<PageLoader />}><KaizenDatabase /></Suspense>} />
             <Route path="opl" element={<Suspense fallback={<PageLoader />}><OnePointLessons /></Suspense>} />
 

@@ -1,74 +1,101 @@
 import React from 'react';
-import { ProcessValue } from '../../components/scada/Tags/ProcessValue';
-import { Motor, ConveyorBelt, Silo, BucketElevator, BagFilter } from '../../components/scada/Equipment/EquipmentComponents';
+import { useScadaStore } from '../../store/scadaStore';
+import { 
+  ReinforcedSiloUnit, PulseJetBaghouseUnit, 
+  IndustrialPipe, ISAInstrumentTag 
+} from '../../components/scada/Equipment/IndustrialPlantComponents';
 
-export const ClinkerTransportScreen = () => {
+interface ScreenProps {
+  onOpenFaceplate?: (eqId: string) => void;
+}
+
+export const ClinkerTransportScreen: React.FC<ScreenProps> = ({ onOpenFaceplate }) => {
+  const tags = useScadaStore((s) => s.tags);
+
   return (
-    <div className="w-full h-full relative">
-      <svg className="absolute top-0 left-0 w-full h-full pointer-events-none" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+    <div className="w-full h-full relative bg-[#0b1320] text-white overflow-hidden select-none font-sans">
+      
+      {/* SECTION HEADER & CONTROL BAR */}
+      <div className="flex items-center justify-between px-6 py-2 bg-[#070b14] border-b border-gray-800 text-xs">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-amber-400 font-bold px-2 py-0.5 bg-black/60 rounded border border-amber-500/30">
+              AREA-550
+            </span>
+            <span className="text-sm font-extrabold text-white">CLINKER CONVEYING & STORAGE SILOS</span>
+          </div>
+          <span className="text-gray-400 font-mono text-[11px]">DEEP PAN CONVEYOR • DOUBLE-CHAIN ELEVATOR • 50,000 TON SILO CAPACITY</span>
+        </div>
+
+        <div className="flex items-center gap-6 font-mono text-[11px]">
+          <div>CONVEYOR LOAD: <span className="text-[#00ff00] font-bold">{(tags['CT1-PAN-CVY-LOAD'] || 182).toFixed(0)} t/h</span></div>
+          <div>CONVEYOR SPEED: <span className="text-[#00d4ff] font-bold">{(tags['CT1-PAN-CVY-SPD'] || 0.35).toFixed(2)} m/s</span></div>
+          <div>SILO 1 LEVEL: <span className="text-emerald-400 font-bold">{(tags['CT1-SILO-LVL'] || 65.4).toFixed(1)} %</span></div>
+          <div>TOTAL STOCK: <span className="text-amber-400 font-bold">42,500 tons</span></div>
+        </div>
+      </div>
+
+      {/* SVG SCHEMATIC */}
+      <svg className="w-full h-full" viewBox="0 0 1600 780" preserveAspectRatio="xMidYMid meet">
         
-        {/* --- FROM COOLER --- */}
-        <rect x="50" y="550" width="100" height="40" fill="#475569" />
-        <text x="100" y="575" fill="#0f172a" fontSize="12" fontWeight="bold" textAnchor="middle">FROM CLR1</text>
-        
-        {/* --- DEEP PAN CONVEYOR --- */}
-        <ConveyorBelt id="CT1-DPC-01" x="150" y="550" length="500" angle={-15} />
+        {/* Conveyor path from Cooler */}
+        <IndustrialPipe d="M 60 520 L 520 220" media="CLINKER" strokeWidth="16" />
+        <IndustrialPipe d="M 520 220 L 1380 220" media="CLINKER" strokeWidth="12" />
 
-        {/* --- BUCKET ELEVATOR --- */}
-        <BucketElevator id="CT1-ELEV-01" x="650" y="200" height="220" />
-        
-        {/* Transfer chute */}
-        <path d="M 630 420 L 680 420 L 680 440" fill="none" stroke="#475569" strokeWidth="20" />
+        {/* 1. DEEP PAN CONVEYOR (HEAD DRIVE & TAKE-UP) */}
+        <g transform="translate(60, 520)">
+          <rect x="-10" y="-15" width="80" height="30" fill="#334155" stroke="#64748b" rx="2" />
+          <text x="30" y="5" fill="#facc15" fontSize="8" fontWeight="bold" textAnchor="middle">COOLER DROP</text>
+        </g>
 
-        {/* --- DISTRIBUTION CONVEYOR --- */}
-        <ConveyorBelt id="CT1-DPC-02" x="680" y="220" length="700" />
-        <path d="M 660 210 L 680 210" fill="none" stroke="#475569" strokeWidth="20" />
+        {/* Heavy Double-Chain Bucket Elevator at Transfer Tower */}
+        <g transform="translate(500, 160)">
+          <rect x="0" y="0" width="35" height="380" fill="#0f172a" stroke="#475569" strokeWidth="2.5" rx="3" />
+          <line x1="17" y1="10" x2="17" y2="370" stroke="#f59e0b" strokeWidth="3" strokeDasharray="8 6">
+            <animate attributeName="stroke-dashoffset" from="14" to="0" dur="0.6s" repeatCount="indefinite" />
+          </line>
+          <text x="17" y="-8" fill="#facc15" fontSize="8" fontWeight="bold" textAnchor="middle">CHAIN ELEVATOR</text>
+        </g>
 
-        {/* --- SILOS --- */}
-        <Silo x="750" y="300" width="180" height="350" levelTag="CT1-SILO1-LVL" label="CLINKER SILO 1" />
-        <Silo x="1000" y="300" width="180" height="350" levelTag="CT1-SILO2-LVL" label="CLINKER SILO 2" />
-        <Silo x="1250" y="450" width="120" height="200" levelTag="CT1-SILO3-LVL" label="OFF-SPEC" />
+        {/* 2. REINFORCED CLINKER SILOS (SILO 1 & SILO 2 & OFF-SPEC) */}
+        <ReinforcedSiloUnit 
+          x={640} 
+          y={230} 
+          width={160} 
+          height={380} 
+          tagLvl="CT1-SILO-LVL" 
+          name="MAIN CLINKER SILO 1" 
+          material="OPC CLINKER" 
+        />
 
-        {/* --- SILO DROPS --- */}
-        <path d="M 840 230 L 840 300" fill="none" stroke="#475569" strokeWidth="20" />
-        <path d="M 1090 230 L 1090 300" fill="none" stroke="#475569" strokeWidth="20" />
-        <path d="M 1310 230 L 1310 450" fill="none" stroke="#475569" strokeWidth="20" />
+        <ReinforcedSiloUnit 
+          x={880} 
+          y={230} 
+          width={160} 
+          height={380} 
+          tagLvl="CT1-SILO-LVL" 
+          name="MAIN CLINKER SILO 2" 
+          material="SPECIAL CLINKER" 
+        />
 
-        {/* --- DUST COLLECTOR --- */}
-        <BagFilter id="CT1-DC-01" x="600" y="50" />
-        <path d="M 680 200 L 700 90" fill="none" stroke="#64748b" strokeWidth="10" />
+        <ReinforcedSiloUnit 
+          x={1120} 
+          y={330} 
+          width={120} 
+          height={280} 
+          tagLvl="CT1-SILO-LVL" 
+          name="OFF-SPEC SILO" 
+          material="RE-CYCLE" 
+        />
+
+        {/* 3. DUST COLLECTOR BAG FILTER */}
+        <PulseJetBaghouseUnit id="CT1-DC-01" x={460} y={40} scale={0.9} />
+
+        {/* ISA TAGS */}
+        <ISAInstrumentTag tag="CT1-PAN-CVY-LOAD" isaCode="WI" unit="t/h" x={340} y={320} />
+        <ISAInstrumentTag tag="CT1-SILO-LVL" isaCode="LI" unit="%" x={720} y={200} />
 
       </svg>
-
-      {/* --- DATA BOXES --- */}
-      
-      <div className="absolute top-[600px] left-[150px] bg-[#0a0f1c]/90 border border-gray-600 rounded p-2 text-[11px] w-[180px]">
-         <div className="text-[#00d4ff] font-bold border-b border-gray-700 pb-1 mb-1">DEEP PAN CONVEYOR</div>
-         <div className="flex justify-between"><span className="text-gray-400">Speed</span><ProcessValue tag="CT1-DPC-SPD" unit="m/s" fractionDigits={2} /></div>
-         <div className="flex justify-between"><span className="text-gray-400">Current</span><ProcessValue tag="CT1-DPC-CUR" unit="A" fractionDigits={0} /></div>
-         <div className="flex justify-between"><span className="text-gray-400">Load</span><ProcessValue tag="CT1-DPC-LOAD" unit="t/h" fractionDigits={0} /></div>
-      </div>
-
-      <div className="absolute top-[50px] left-[750px] bg-[#0a0f1c]/90 border border-gray-600 rounded p-2 text-[11px] w-[150px]">
-         <div className="text-blue-400 font-bold border-b border-gray-700 pb-1 mb-1">TRANSFER FILTER</div>
-         <div className="flex justify-between"><span className="text-gray-400">Diff Press</span><ProcessValue tag="CT1-DC-DP" unit="Pa" fractionDigits={0} /></div>
-      </div>
-
-      <div className="absolute top-[670px] left-[750px] bg-[#0a0f1c]/90 border border-gray-600 rounded p-2 text-[11px] w-[180px]">
-         <div className="text-[#00d4ff] font-bold border-b border-gray-700 pb-1 mb-1">SILO 1 (RADAR)</div>
-         <div className="flex justify-between"><span className="text-gray-400">Level</span><ProcessValue tag="CT1-SILO1-LVL" unit="%" color="#00ff00" /></div>
-      </div>
-
-      <div className="absolute top-[670px] left-[1000px] bg-[#0a0f1c]/90 border border-gray-600 rounded p-2 text-[11px] w-[180px]">
-         <div className="text-[#00d4ff] font-bold border-b border-gray-700 pb-1 mb-1">SILO 2 (RADAR)</div>
-         <div className="flex justify-between"><span className="text-gray-400">Level</span><ProcessValue tag="CT1-SILO2-LVL" unit="%" color="#00ff00" /></div>
-      </div>
-
-      <div className="absolute top-[670px] left-[1250px] bg-[#0a0f1c]/90 border-2 border-orange-900 rounded p-2 text-[11px] w-[120px]">
-         <div className="text-orange-500 font-bold border-b border-orange-900 pb-1 mb-1">OFF-SPEC</div>
-         <div className="flex justify-between"><span className="text-gray-400">Level</span><ProcessValue tag="CT1-SILO3-LVL" unit="%" color="#fb923c" /></div>
-      </div>
-      
     </div>
   );
 };

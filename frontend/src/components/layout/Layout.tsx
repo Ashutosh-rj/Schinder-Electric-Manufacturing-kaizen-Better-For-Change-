@@ -4,7 +4,9 @@ import {
   Activity, Zap, AlertTriangle, Hexagon, Component, 
   LayoutDashboard, GitBranch, HeartPulse, History,
   CheckCircle2, Search, Bell, Settings, User, LogOut,
-  ChevronDown, ShieldCheck, Factory, Sparkles
+  ChevronDown, ShieldCheck, Factory, Sparkles, Power,
+  CloudRain, Sliders, Layers, BarChart3, Database, BookOpen, FileText,
+  BrainCircuit
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 
@@ -20,8 +22,12 @@ const navSections = [
   {
     title: "SUSTAINABILITY & ENERGY",
     items: [
-      { to: "/energy", icon: <Zap size={18} strokeWidth={2} />, label: "Energy Optimization" },
+      { to: "/energy", icon: <Zap size={18} strokeWidth={2} />, label: "Energy Analytics" },
+      { to: "/optimization", icon: <Settings size={18} strokeWidth={2} />, label: "Mill & Fan Optimization", badge: "SEC" },
       { to: "/whrs", icon: <Activity size={18} strokeWidth={2} />, label: "WHRS Heat Recovery" },
+      { to: "/captive-power", icon: <Power size={18} strokeWidth={2} />, label: "Captive Power & Grid" },
+      { to: "/emissions", icon: <CloudRain size={18} strokeWidth={2} />, label: "Emissions & Scope 1/2" },
+      { to: "/simulation", icon: <Sliders size={18} strokeWidth={2} />, label: "What-If Simulator" },
     ]
   },
   {
@@ -29,18 +35,32 @@ const navSections = [
     items: [
       { to: "/equipment-health", icon: <HeartPulse size={18} strokeWidth={2} />, label: "Equipment Health" },
       { to: "/predictive-maintenance", icon: <History size={18} strokeWidth={2} />, label: "Predictive Maintenance" },
-      { to: "/alarms", icon: <AlertTriangle size={18} strokeWidth={2} />, label: "Alarms & Anomalies", badge: "3" },
+      { to: "/alarms", icon: <AlertTriangle size={18} strokeWidth={2} />, label: "Alarms & Anomalies", badge: "Live" },
     ]
   },
   {
     title: "KAIZEN INTELLIGENCE",
     items: [
-      { to: "/kaizen", icon: <CheckCircle2 size={18} strokeWidth={2} />, label: "AI Opportunities", badge: "1 New" },
+      { to: "/kaizen", icon: <CheckCircle2 size={18} strokeWidth={2} />, label: "AI Opportunities", badge: "3 New" },
+      { to: "/copilot", icon: <BrainCircuit size={18} strokeWidth={2} />, label: "Kaizen AI Copilot", badge: "AI" },
       { to: "/rca", icon: <Hexagon size={18} strokeWidth={2} />, label: "Root Cause Analysis" },
       { to: "/kaizen-projects", icon: <Sparkles size={18} strokeWidth={2} />, label: "Kaizen Projects" },
+      { to: "/loss-tree", icon: <Layers size={18} strokeWidth={2} />, label: "Loss Tree Analysis" },
+      { to: "/oee", icon: <BarChart3 size={18} strokeWidth={2} />, label: "OEE Analysis" },
+      { to: "/verification", icon: <CheckCircle2 size={18} strokeWidth={2} />, label: "Improvement Verification" },
+      { to: "/kaizen-db", icon: <Database size={18} strokeWidth={2} />, label: "Kaizen Database" },
+      { to: "/opl", icon: <BookOpen size={18} strokeWidth={2} />, label: "One Point Lessons (OPL)" },
+    ]
+  },
+  {
+    title: "GOVERNANCE & AUDIT",
+    items: [
+      { to: "/reports", icon: <FileText size={18} strokeWidth={2} />, label: "Operations Reports" },
+      { to: "/admin", icon: <Settings size={18} strokeWidth={2} />, label: "Plant Administration" },
     ]
   }
 ];
+
 
 const Layout: React.FC = () => {
   const location = useLocation();
@@ -169,6 +189,16 @@ const Layout: React.FC = () => {
                 ⌘K
               </span>
             </div>
+
+            {/* AI Copilot Launcher */}
+            <Link
+              to="/copilot"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-[#106c35] rounded-xl text-xs font-bold transition-all shadow-xs group"
+              title="Open Kaizen AI Engineering Copilot"
+            >
+              <BrainCircuit size={15} className="text-[#106c35] group-hover:scale-110 transition-transform" />
+              <span className="hidden sm:inline">AI Copilot</span>
+            </Link>
 
             {/* Actions */}
             <div className="flex items-center gap-3 border-l border-slate-200 pl-4">

@@ -13,8 +13,9 @@ ehthumbs.db
 Thumbs.db
 desktop.ini
 $RECYCLE.BIN/
+*.lnk
 
-# ── IDEs and Editors ────────────────────────────────────────────────
+# ── IDEs, Editors & AI Agent Tooling ────────────────────────────────
 .idea/
 .vscode/
 *.swp
@@ -30,8 +31,18 @@ $RECYCLE.BIN/
 *.njsproj
 *.sln
 *.user
+*.userosscache
+*.sln.docstates
+*.code-workspace
 
-# ── Python & Environments ───────────────────────────────────────────
+# AI Agent & Assistant Artifacts
+.gemini/
+.antigravity/
+.system_generated/
+.cursor/
+.windsurf/
+
+# ── Python & Virtual Environments ───────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
@@ -66,9 +77,11 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Testing & Type Checking
+# Testing, Coverage & Type Checking
 .pytest_cache/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
 .tox/
 .nox/
@@ -76,21 +89,28 @@ htmlcov/
 .ruff_cache/
 .hypothesis/
 
+# Jupyter Notebooks & Checkpoints
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
 # ── Node.js & Frontend (React / Vite / TypeScript) ──────────────────
-frontend/node_modules/
 node_modules/
-frontend/dist/
-frontend/dist-ssr/
+frontend/node_modules/
 dist/
+frontend/dist/
 dist-ssr/
+frontend/dist-ssr/
 out/
 .next/
 .nuxt/
 .turbo/
-.cache
-.npm
+.cache/
+.npm/
+.pnpm-store/
+.vite/
+frontend/.vite/
 
-# Logs
+# Node logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -98,7 +118,7 @@ pnpm-debug.log*
 .pnpm-debug.log*
 lerna-debug.log*
 
-# Linters & Build cache
+# Linters, Type Check & Build cache
 .eslintcache
 .stylelintcache
 *.tsbuildinfo
@@ -109,7 +129,7 @@ lerna-debug.log*
 !frontend/src/lib/
 !frontend/src/lib/**
 
-# ── ML Models, Weights & Datasets ───────────────────────────────────
+# ── Machine Learning Models, Checkpoints & Datasets ─────────────────
 *.h5
 *.pb
 *.onnx
@@ -118,35 +138,62 @@ lerna-debug.log*
 *.pt
 *.pth
 *.safetensors
+*.bin
+*.ckpt
+*.tflite
 runs/
 wandb/
 .tensorboard/
+lightning_logs/
+mlruns/
+ml_models/
+ml-service/models/*
+!ml-service/models/.gitkeep
 
 # ── Environment & Secrets (Never commit credentials) ───────────────
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
 .env*.local
+*.env
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
 
 # Allow example environment templates
 !.env.example
 !.env*.example
+!.env.template
 
-# ── Databases & Persistent Local Storage ────────────────────────────
-*.log
+# ── Databases, Docker Volumes & Persistent Local Storage ────────────
 *.sqlite
 *.sqlite3
 *.db
+*.rdb
 postgres_data/
 timescale_data/
 redis_data/
 kafka_data/
 zookeeper_data/
+zookeeper_logs/
+minio_data/
 grafana_data/
 prometheus_data/
 
+# ── Application Logs & Service Dumps ────────────────────────────────
+*.log
+logs/
+backend/logs/
+backend_logs/
+ml-service/logs/
+simulator/logs/
+
 # ── Temporary & Scratch Files ───────────────────────────────────────
 temp.txt
+backend/temp.txt
 *.tmp
+*.temp
+scratch/
+tmp/

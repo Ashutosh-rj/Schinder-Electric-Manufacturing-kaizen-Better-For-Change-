@@ -575,7 +575,7 @@ CREATE TABLE IF NOT EXISTS rca_results (
 
 -- event_timeline table
 CREATE TABLE IF NOT EXISTS event_timeline (
-    id SERIAL PRIMARY KEY,
+    id SERIAL,
     event_time TIMESTAMPTZ NOT NULL,
     event_type VARCHAR(50), -- ALARM, TRIP, SETPOINT_CHANGE, OPERATOR_ACTION, PROCESS_DEVIATION
     department_code VARCHAR(50),
@@ -587,7 +587,8 @@ CREATE TABLE IF NOT EXISTS event_timeline (
     operator_id INTEGER REFERENCES users(id),
     is_cause BOOLEAN DEFAULT FALSE,
     is_effect BOOLEAN DEFAULT FALSE,
-    rca_id INTEGER REFERENCES rca_results(id)
+    rca_id INTEGER REFERENCES rca_results(id),
+    PRIMARY KEY (id, event_time)
 );
 SELECT create_hypertable('event_timeline', 'event_time', if_not_exists => TRUE);
 
