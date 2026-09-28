@@ -8,6 +8,7 @@
 import { useScadaStore, EquipmentState, EquipmentMode } from '../store/scadaStore';
 import { wsClient } from '../lib/websocket';
 import { useTelemetryStore } from '../stores/telemetryStore';
+import { scadaAudio } from './scadaAudio';
 
 export interface IndustrialEquipmentMeta {
   id: string;
@@ -22,18 +23,46 @@ export interface IndustrialEquipmentMeta {
 }
 
 export const EQUIPMENT_CATALOG: Record<string, IndustrialEquipmentMeta> = {
-  // CRUSHER AREA
+  // ── CRUSHER & RECLAIMER AREA ──────────────────────────────────────────
+  'CR-RC-01': {
+    id: 'CR-RC-01',
+    tag: 'M-1100-RC',
+    name: 'Bucket Wheel Limestone Reclaimer Drive',
+    type: 'Bucket Wheel Stacker / Reclaimer',
+    area: 'CRUSHER',
+    ratedPowerKw: 160,
+    ratedCurrentA: 280,
+    ratedSpeedRpm: 5.8,
+    interlocks: [
+      { id: 'INT-01', desc: 'Discharge Conveyor BC-101 Running', satisfied: true },
+      { id: 'INT-02', desc: 'Slewing Angle Travel Limits Clear', satisfied: true },
+      { id: 'INT-03', desc: 'Rail Clamps Released & Brake Lifted', satisfied: true },
+    ]
+  },
+  'CR-HOP-01': {
+    id: 'CR-HOP-01',
+    tag: 'T-1101-HOP',
+    name: 'Primary Dump Hopper & Grizzly',
+    type: 'Dump Hopper',
+    area: 'CRUSHER',
+    ratedPowerKw: 0,
+    ratedCurrentA: 0,
+    ratedSpeedRpm: 0,
+    interlocks: [
+      { id: 'INT-01', desc: 'Dump Chute Level < 95% High Limit', satisfied: true },
+    ]
+  },
   'CR-AF-01': {
     id: 'CR-AF-01',
     tag: 'M-1101-AF',
-    name: 'Apron Feeder Hydraulic Drive',
-    type: 'Hydraulic Motor',
+    name: 'Apron Feeder Variable Speed Hydraulic Drive',
+    type: 'Apron Feeder',
     area: 'CRUSHER',
     ratedPowerKw: 75,
     ratedCurrentA: 135,
-    ratedSpeedRpm: 15,
+    ratedSpeedRpm: 32.0,
     interlocks: [
-      { id: 'INT-01', desc: 'Downstream Conveyor CR-BC-101 Running', satisfied: true },
+      { id: 'INT-01', desc: 'Downstream Crusher CR-CR-01 Running', satisfied: true },
       { id: 'INT-02', desc: 'Hydraulic Unit Oil Pressure > 120 bar', satisfied: true },
       { id: 'INT-03', desc: 'Hopper Chute Level Permissive (> 15%)', satisfied: true },
       { id: 'INT-04', desc: 'Emergency Pull Cord Switch Healthy', satisfied: true },
@@ -42,37 +71,119 @@ export const EQUIPMENT_CATALOG: Record<string, IndustrialEquipmentMeta> = {
   'CR-CR-01': {
     id: 'CR-CR-01',
     tag: 'M-1102-CR',
-    name: 'Primary Reversible Impact Crusher',
-    type: 'Impact Crusher',
+    name: 'Primary Reversible Impact Crusher Drive',
+    type: 'Impact / Gyratory Crusher',
     area: 'CRUSHER',
-    ratedPowerKw: 650,
-    ratedCurrentA: 820,
+    ratedPowerKw: 420,
+    ratedCurrentA: 612,
     ratedSpeedRpm: 740,
     interlocks: [
-      { id: 'INT-01', desc: 'Discharge Conveyor CR-BC-102 Running', satisfied: true },
+      { id: 'INT-01', desc: 'Discharge Conveyor BC-102 Running', satisfied: true },
       { id: 'INT-02', desc: 'Lube Oil Pressure > 3.2 bar', satisfied: true },
       { id: 'INT-03', desc: 'Lube Oil Temp < 65°C', satisfied: true },
       { id: 'INT-04', desc: 'Vibration Switch < 4.5 mm/s', satisfied: true },
       { id: 'INT-05', desc: 'Hydraulic Gap Setting (CSS) Locked', satisfied: true },
     ]
   },
+  'CR-MD-01': {
+    id: 'CR-MD-01',
+    tag: 'E-1103-MD',
+    name: 'In-Line Tramp Metal Detector & Separator',
+    type: 'Metal Detector',
+    area: 'CRUSHER',
+    ratedPowerKw: 15,
+    ratedCurrentA: 28,
+    ratedSpeedRpm: 0,
+    interlocks: [
+      { id: 'INT-01', desc: 'Search Coil Tuning Calibrated', satisfied: true },
+      { id: 'INT-02', desc: 'Reject Diverter Flap Gate Armed', satisfied: true },
+    ]
+  },
   'CR-BC-101': {
     id: 'CR-BC-101',
-    tag: 'M-1103-BC',
-    name: 'Crushed Limestone Discharge Conveyor',
+    tag: 'M-1104-BC',
+    name: 'Reclaimed Limestone Conveyor BC-101',
     type: 'Belt Conveyor',
     area: 'CRUSHER',
-    ratedPowerKw: 110,
-    ratedCurrentA: 195,
-    ratedSpeedRpm: 1480,
+    ratedPowerKw: 37,
+    ratedCurrentA: 52,
+    ratedSpeedRpm: 1450,
     interlocks: [
-      { id: 'INT-01', desc: 'Downstream Stacker Conveyor Running', satisfied: true },
+      { id: 'INT-01', desc: 'Downstream Conveyor BC-102 Running', satisfied: true },
       { id: 'INT-02', desc: 'Belt Sway Switches Healthy', satisfied: true },
       { id: 'INT-03', desc: 'Zero Speed Sensor Normal', satisfied: true },
     ]
   },
+  'CR-BC-102': {
+    id: 'CR-BC-102',
+    tag: 'M-1105-BC',
+    name: 'Crusher Discharge Conveyor BC-102',
+    type: 'Belt Conveyor',
+    area: 'CRUSHER',
+    ratedPowerKw: 75,
+    ratedCurrentA: 88,
+    ratedSpeedRpm: 1450,
+    interlocks: [
+      { id: 'INT-01', desc: 'Transfer Chute CR-TC-01 Not Choked', satisfied: true },
+      { id: 'INT-02', desc: 'Belt Tear Detector Healthy', satisfied: true },
+    ]
+  },
+  'CR-BC-103': {
+    id: 'CR-BC-103',
+    tag: 'M-1106-BC',
+    name: 'Secondary Transfer Conveyor BC-103',
+    type: 'Belt Conveyor',
+    area: 'CRUSHER',
+    ratedPowerKw: 71,
+    ratedCurrentA: 82,
+    ratedSpeedRpm: 1450,
+    interlocks: [
+      { id: 'INT-01', desc: 'Downstream Incline Conveyor BC-104 Running', satisfied: true },
+    ]
+  },
+  'CR-BC-104': {
+    id: 'CR-BC-104',
+    tag: 'M-1107-BC',
+    name: 'Main Incline Delivery Conveyor to Silos BC-104',
+    type: 'Belt Conveyor',
+    area: 'CRUSHER',
+    ratedPowerKw: 90,
+    ratedCurrentA: 95,
+    ratedSpeedRpm: 1450,
+    interlocks: [
+      { id: 'INT-01', desc: 'Raw Meal Hopper RMH-01 High Level Not Tripped', satisfied: true },
+    ]
+  },
+  'CR-DC-01': {
+    id: 'CR-DC-01',
+    tag: 'M-1108-DC',
+    name: 'Dust Collector (Bag Filter) Extraction ID Fan',
+    type: 'Bag Filter ID Fan',
+    area: 'CRUSHER',
+    ratedPowerKw: 45,
+    ratedCurrentA: 82,
+    ratedSpeedRpm: 1480,
+    interlocks: [
+      { id: 'INT-01', desc: 'Reverse Pulse Air Header Pressure > 5.5 bar', satisfied: true },
+      { id: 'INT-02', desc: 'Baghouse Hopper Screw Conveyor Running', satisfied: true },
+    ]
+  },
+  'UT-AC-01': {
+    id: 'UT-AC-01',
+    tag: 'M-1109-AC',
+    name: 'Rotary Screw Instrument Air Compressor',
+    type: 'Air Compressor',
+    area: 'CRUSHER',
+    ratedPowerKw: 55,
+    ratedCurrentA: 68,
+    ratedSpeedRpm: 2950,
+    interlocks: [
+      { id: 'INT-01', desc: 'Discharge Air Temp < 95°C', satisfied: true },
+      { id: 'INT-02', desc: 'Air Receiver Pressure Normal', satisfied: true },
+    ]
+  },
 
-  // RAW MILL AREA
+  // ── RAW MILL AREA ───────────────────────────────────────────────────
   'RM1-VRM-01': {
     id: 'RM1-VRM-01',
     tag: 'M-2101-VRM',
@@ -123,7 +234,7 @@ export const EQUIPMENT_CATALOG: Record<string, IndustrialEquipmentMeta> = {
     ]
   },
 
-  // COAL MILL AREA
+  // ── COAL MILL AREA ──────────────────────────────────────────────────
   'CM1-VRM-01': {
     id: 'CM1-VRM-01',
     tag: 'M-3101-CLM',
@@ -142,7 +253,7 @@ export const EQUIPMENT_CATALOG: Record<string, IndustrialEquipmentMeta> = {
     ]
   },
 
-  // KILN & PREHEATER AREA
+  // ── KILN & PREHEATER AREA ───────────────────────────────────────────
   'KLN1-KILN-01': {
     id: 'KLN1-KILN-01',
     tag: 'M-4101-KLN',
@@ -193,7 +304,7 @@ export const EQUIPMENT_CATALOG: Record<string, IndustrialEquipmentMeta> = {
     ]
   },
 
-  // COOLER AREA
+  // ── COOLER AREA ─────────────────────────────────────────────────────
   'CLR1-COOL-01': {
     id: 'CLR1-COOL-01',
     tag: 'M-5101-CLR',
@@ -204,7 +315,7 @@ export const EQUIPMENT_CATALOG: Record<string, IndustrialEquipmentMeta> = {
     ratedCurrentA: 235,
     ratedSpeedRpm: 24,
     interlocks: [
-      { id: 'INT-01', desc: 'Undergrate Cooling Fans 1 to 6 Running', satisfied: true },
+      { id: 'INT-01', desc: 'Undergrate Cooling Fans 1 to 10 Running', satisfied: true },
       { id: 'INT-02', desc: 'Clinker Roll Crusher Running', satisfied: true },
       { id: 'INT-03', desc: 'Downstream Deep Pan Conveyor Running', satisfied: true },
       { id: 'INT-04', desc: 'Hydraulic Power Pack Pressure (160 bar) Normal', satisfied: true },
@@ -225,7 +336,7 @@ export const EQUIPMENT_CATALOG: Record<string, IndustrialEquipmentMeta> = {
     ]
   },
 
-  // CEMENT MILL AREA
+  // ── CEMENT MILL AREA ────────────────────────────────────────────────
   'CM2-MILL-01': {
     id: 'CM2-MILL-01',
     tag: 'M-6101-CMM',
@@ -258,7 +369,7 @@ export const EQUIPMENT_CATALOG: Record<string, IndustrialEquipmentMeta> = {
     ]
   },
 
-  // WHRS AREA
+  // ── WHRS POWER AREA ─────────────────────────────────────────────────
   'WHRS-GEN-01': {
     id: 'WHRS-GEN-01',
     tag: 'G-7101-TURB',
@@ -337,9 +448,16 @@ class ScadaEngine {
   }
 
   private tick() {
-    this.tickCount++;
-    const telemetry = useTelemetryStore.getState().latest;
     const store = useScadaStore.getState();
+    const speed = store.simSpeed || 1;
+    this.tickCount += speed;
+
+    const telemetry = useTelemetryStore.getState().latest;
+
+    // Baghouse reverse pulse-jet sound effect every 15 seconds
+    if (this.tickCount % 15 === 0) {
+      scadaAudio.playPulseJet();
+    }
 
     // Check if WebSocket telemetry is available
     if (telemetry && telemetry.readings && telemetry.readings.length > 0) {
@@ -363,15 +481,16 @@ class ScadaEngine {
   }
 
   private generatePhysicsTags(t: number): Record<string, number> {
+    const store = useScadaStore.getState();
     const s = Math.sin(t * 0.05);
     const c = Math.cos(t * 0.03);
-    const rnd = (pct: number) => 1 + (Math.sin(t * 0.2 + pct * 10) * pct * 0.5);
 
     // Get current equipment run states
-    const eq = useScadaStore.getState().equipment;
+    const eq = store.equipment;
     const isRun = (id: string) => eq[id]?.status === 'RUNNING' || eq[id]?.status === undefined;
 
     const crRun = isRun('CR-CR-01') ? 1 : 0;
+    const rcRun = isRun('CR-RC-01') ? 1 : 0;
     const rmRun = isRun('RM1-VRM-01') ? 1 : 0;
     const clmRun = isRun('CM1-VRM-01') ? 1 : 0;
     const klnRun = isRun('KLN1-KILN-01') ? 1 : 0;
@@ -379,45 +498,90 @@ class ScadaEngine {
     const cmRun = isRun('CM2-MILL-01') ? 1 : 0;
     const whrsRun = isRun('WHRS-GEN-01') ? 1 : 0;
 
+    // Check active incident scenario
+    const scenario = store.activeScenario;
+    const isTrampMetal = scenario === 'TRAMP_METAL';
+    const isMillOverload = scenario === 'MILL_OVERLOAD';
+    const isKilnOverheat = scenario === 'KILN_OVERHEAT';
+
+    // Crusher physics
+    const crusherLoad = isTrampMetal ? 0 : crRun * (72.0 + s * 4.0);
+    const crusherPower = isTrampMetal ? 45.0 : crRun * (420.0 + c * 25.0);
+    const crusherCurrent = isTrampMetal ? 65.0 : crRun * (612.0 + c * 30.0);
+    const crusherVib = isTrampMetal ? 0.3 : crRun * (2.4 + Math.abs(s) * 0.6);
+
+    // Cement mill physics
+    const cmPwr = isMillOverload ? 4950.0 : cmRun * (4280.0 + s * 110.0);
+    const cmEar = isMillOverload ? 42.0 : cmRun * (80.6 + s * 2.5); // Low noise = muffled/choked mill
+
+    // Kiln burning zone physics
+    const bzTemp = isKilnOverheat ? 1492.0 + s * 8.0 : klnRun * (1448.0 + s * 15.0);
+    const klnNox = isKilnOverheat ? 560.0 : 410.0 + s * 25.0;
+
     return {
-      // CRUSHER
-      'CR-HOP-LVL': 68.5 + s * 4.2,
-      'CR-AF-FEED': crRun * (480.0 + s * 15.0),
-      'CR-AF-SPD': crRun * (12.4 + s * 0.5),
-      'CR-AF-CUR': crRun * (92.0 + s * 3.5),
-      'CR-CR-PWR': crRun * (485.0 + c * 25.0),
-      'CR-CR-CUR': crRun * (610.0 + c * 30.0),
-      'CR-CR-VIB': crRun * (2.4 + Math.abs(s) * 0.6),
-      'CR-CR-LOAD': crRun * (78.0 + s * 5.0),
+      // ── CRUSHER & RECLAIMER YARD ──────────────────────────────────────
+      'CR-STOCK-TOT': 325680.0,
+      'CR-STOCK-AVAIL': 310420.0,
+      'CR-RECLAIM-RATE': rcRun * (1150.0 + s * 20.0),
+      'CR-RC-SPD': rcRun * 12.4, // m/min travel
+      'CR-RC-RPM': rcRun * 5.8, // bucket wheel rpm
+      'CR-HOP-LVL': 68.0 + s * 3.5,
+      'CR-AF-FEED': crRun * (1045.0 + s * 25.0),
+      'CR-AF-SPD': crRun * (32.0 + s * 0.8), // Hz
+      'CR-AF-CUR': crRun * (45.2 + s * 2.0),
+      'CR-AF-PWR': crRun * (38.6 + s * 1.5),
+      'CR-CR-PWR': crusherPower,
+      'CR-CR-CUR': crusherCurrent,
+      'CR-CR-VIB': crusherVib,
+      'CR-CR-LOAD': crusherLoad,
       'CR-CR-DE-TEMP': 58.2 + s * 1.5,
       'CR-CR-NDE-TEMP': 56.4 + c * 1.2,
       'CR-CR-CSS': 28.5, // Closed side setting in mm
       'CR-CR-LUBE-PR': 3.8 + s * 0.1,
-      'CR-BC101-LOAD': crRun * (475.0 + s * 12.0),
-      'CR-BC101-SPD': crRun * 2.1,
-      'CR-BC102-LOAD': crRun * (470.0 + s * 14.0),
-      'CR-BC102-SPD': crRun * 2.2,
-      'CR-DC-DP': 115.0 + s * 8.0,
-      'CR-XRF-CA': 44.2 + s * 0.3,
-      'CR-XRF-SI': 13.5 + c * 0.2,
-      'CR-XRF-AL': 3.4 + s * 0.1,
-      'CR-XRF-FE': 2.1 + c * 0.05,
-      'CR-XRF-LSF': 96.8 + s * 1.2,
+      'CR-BC101-LOAD': rcRun * (680.0 + s * 15.0),
+      'CR-BC101-SPD': rcRun * 2.5,
+      'CR-BC101-CUR': rcRun * (52.0 + s * 2.0),
+      'CR-BC101-PWR': rcRun * (37.0 + s * 1.5),
+      'CR-BC102-LOAD': isTrampMetal ? 0 : crRun * (1040.0 + s * 20.0),
+      'CR-BC102-SPD': isTrampMetal ? 0 : crRun * 3.0,
+      'CR-BC102-CUR': isTrampMetal ? 12 : crRun * (88.0 + s * 3.0),
+      'CR-BC102-PWR': isTrampMetal ? 5 : crRun * (75.0 + s * 2.5),
+      'CR-BC103-LOAD': crRun * (1020.0 + s * 20.0),
+      'CR-BC103-SPD': crRun * 3.0,
+      'CR-BC103-CUR': crRun * (82.0 + s * 2.5),
+      'CR-BC103-PWR': crRun * (71.0 + s * 2.0),
+      'CR-BC104-LOAD': crRun * (990.0 + s * 20.0),
+      'CR-BC104-SPD': crRun * 3.5,
+      'CR-BC104-CUR': crRun * (95.0 + s * 3.0),
+      'CR-BC104-PWR': crRun * (90.0 + s * 2.5),
+      'CR-DC-DP': 1250.0 + s * 45.0, // Pa
+      'CR-DC-IN-TEMP': 68.0 + s * 2.0,
+      'CR-DC-OUT-TEMP': 54.0 + s * 1.5,
+      'CR-DC-CUR': 82.0 + s * 2.0,
+      'CR-DC-PWR': 45.0 + s * 1.0,
+      'CR-ST-EMISSION': 8.5 + s * 0.4, // mg/Nm3
+      'CR-ST-FLOW': 42300.0 + s * 500.0, // Nm3/h
+      'CR-ST-TEMP': 62.0 + s * 1.0,
+      'UT-AC-PR': 7.8 + s * 0.1, // bar
+      'UT-AC-CUR': 68.0 + s * 2.0,
+      'CR-PROD-TODAY': 21450.0 + (t * 0.28),
+      'CR-PROD-YEST': 20980.0,
+      'CR-AVAIL': 96.8,
 
-      // RAW MILL
+      // ── RAW MILL ──────────────────────────────────────────────────────
       'RM1-FEED': rmRun * (285.0 + s * 6.0),
       'RM1-FEED-TOT': rmRun * (285.0 + s * 6.0),
-      'RM1-FEED-LS': rmRun * (235.0 + s * 5.0), // 82.5%
-      'RM1-FEED-CLAY': rmRun * (34.0 + s * 1.0), // 12%
-      'RM1-FEED-SAND': rmRun * (8.5 + s * 0.3),  // 3%
-      'RM1-FEED-IRON': rmRun * (7.5 + s * 0.2),  // 2.5%
+      'RM1-FEED-LS': rmRun * (235.0 + s * 5.0),
+      'RM1-FEED-CLAY': rmRun * (34.0 + s * 1.0),
+      'RM1-FEED-SAND': rmRun * (8.5 + s * 0.3),
+      'RM1-FEED-IRON': rmRun * (7.5 + s * 0.2),
       'RM1-PWR': rmRun * (3240.0 + s * 80.0),
       'RM1-CUR': rmRun * (325.0 + s * 8.0),
       'RM1-DP': rmRun * (620.0 + s * 25.0),
       'RM1-VRM-DP': rmRun * (620.0 + s * 25.0),
       'RM1-VRM-HYD-PR': rmRun * (136.0 + s * 2.0),
       'RM1-VRM-VIB': rmRun * (3.2 + Math.abs(s) * 0.8),
-      'RM1-VRM-WATER': rmRun * (2.8 + s * 0.4), // m3/h water injection
+      'RM1-VRM-WATER': rmRun * (2.8 + s * 0.4),
       'RM1-IN-TEMP': 275.0 + s * 5.0,
       'RM1-OUT-TEMP': 88.5 + s * 2.0,
       'RM1-SEP-SPD': rmRun * (84.0 + c * 1.5),
@@ -429,32 +593,32 @@ class ScadaEngine {
       'RM1-DC-DP': 142.0 + s * 10.0,
       'RM1-SILO-LVL': 74.2 + (t * 0.001) % 20,
 
-      // COAL MILL
+      // ── COAL MILL ─────────────────────────────────────────────────────
       'CM1-BUNKER-LVL': 62.0 + s * 3.0,
       'CM1-FEED': clmRun * (28.5 + s * 1.2),
       'CM1-PWR': clmRun * (440.0 + s * 15.0),
       'CM1-DP': clmRun * (410.0 + s * 18.0),
       'CM1-IN-TEMP': 210.0 + s * 4.0,
       'CM1-OUT-TEMP': 68.5 + s * 1.5,
-      'CM1-O2-CONC': 5.2 + Math.abs(s) * 0.6, // Safe under 8%
-      'CM1-CO-CONC': 85.0 + Math.abs(c) * 25.0, // Safe under 300 ppm
-      'CM1-INJ-KILN': klnRun * (11.8 + s * 0.4), // Coal to kiln burner
-      'CM1-INJ-CALC': klnRun * (16.2 + c * 0.5), // Coal to calciner
+      'CM1-O2-CONC': 5.2 + Math.abs(s) * 0.6,
+      'CM1-CO-CONC': 85.0 + Math.abs(c) * 25.0,
+      'CM1-INJ-KILN': klnRun * (11.8 + s * 0.4),
+      'CM1-INJ-CALC': klnRun * (16.2 + c * 0.5),
 
-      // KILN & PREHEATER
+      // ── KILN & PREHEATER ──────────────────────────────────────────────
       'KLN1-FEED': klnRun * (280.0 + s * 4.0),
       'KLN1-FEED-RATE': klnRun * (280.0 + s * 4.0),
       'KLN1-SPD': klnRun * (3.85 + s * 0.05),
       'KLN1-CUR': klnRun * (845.0 + s * 25.0),
       'KLN1-PWR': klnRun * (580.0 + s * 20.0),
-      'KLN1-BZ-TEMP': klnRun * (1448.0 + s * 15.0),
+      'KLN1-BZ-TEMP': bzTemp,
       'KLN1-BE-TEMP': klnRun * (1042.0 + s * 10.0),
       'KLN1-HOOD-TEMP': klnRun * (1120.0 + s * 12.0),
-      'KLN1-HOOD-PR': -1.2 + s * 0.3, // mmWC draft
+      'KLN1-HOOD-PR': -1.2 + s * 0.3,
       'KLN1-CALC-TEMP': klnRun * (885.0 + s * 8.0),
       'KLN1-TAD-TEMP': klnRun * (860.0 + s * 10.0),
-      'KLN1-TAD-DAMPER': 78.0, // % opening
-      'KLN1-SNCR-FLOW': klnRun * (240.0 + s * 15.0), // L/h ammonia solution
+      'KLN1-TAD-DAMPER': 78.0,
+      'KLN1-SNCR-FLOW': klnRun * (240.0 + s * 15.0),
       'KLN1-C1-TEMP': 335.0 + s * 5.0,
       'KLN1-C2-TEMP': 540.0 + s * 6.0,
       'KLN1-C3-TEMP': 710.0 + s * 8.0,
@@ -468,19 +632,19 @@ class ScadaEngine {
       'KLN1-TYRE1-TEMP': 210.0 + s * 4.0,
       'KLN1-TYRE2-TEMP': 245.0 + s * 5.0,
       'KLN1-TYRE3-TEMP': 195.0 + s * 3.0,
-      'KLN1-THRUST-POS': 4.2 + Math.sin(t * 0.005) * 8.0, // Axial oscillation +/- 10mm
+      'KLN1-THRUST-POS': 4.2 + Math.sin(t * 0.005) * 8.0,
       'KLN1-O2': 2.45 + s * 0.2,
-      'KLN1-NOX': 410.0 + s * 25.0,
+      'KLN1-NOX': klnNox,
       'KLN1-SO2': 18.5 + s * 4.0,
       'KLN1-CO': 120.0 + Math.abs(c) * 35.0,
       'KLN1-CLINKER-PROD': klnRun * (183.5 + s * 3.0),
 
-      // GRATE COOLER
-      'CLR1-GRATE-SPD': clrRun * (14.2 + s * 0.8), // Strokes per min
+      // ── GRATE COOLER ──────────────────────────────────────────────────
+      'CLR1-GRATE-SPD': clrRun * (14.2 + s * 0.8),
       'CLR1-SEC-AIR': clrRun * (1045.0 + s * 15.0),
       'CLR1-TER-AIR': clrRun * (895.0 + s * 12.0),
-      'CLR1-CLINK-OUT': 92.0 + s * 5.0, // Clinker discharge temp °C
-      'CLR1-F1-PR': clrRun * (68.0 + s * 3.0), // mbar
+      'CLR1-CLINK-OUT': 92.0 + s * 5.0,
+      'CLR1-F1-PR': clrRun * (68.0 + s * 3.0),
       'CLR1-F2-PR': clrRun * (54.0 + s * 2.5),
       'CLR1-F3-PR': clrRun * (42.0 + s * 2.0),
       'CLR1-F4-PR': clrRun * (35.0 + s * 1.5),
@@ -488,56 +652,82 @@ class ScadaEngine {
       'CLR1-EXH-TEMP': 240.0 + s * 8.0,
       'CLR1-EXH-FAN-PWR': clrRun * (420.0 + s * 15.0),
 
-      // CLINKER TRANSPORT & SILO
+      // ── CLINKER TRANSPORT & SILO ──────────────────────────────────────
       'CT1-PAN-CVY-LOAD': clrRun * (182.0 + s * 3.5),
-      'CT1-PAN-CVY-SPD': clrRun * 0.35, // m/s
+      'CT1-PAN-CVY-SPD': clrRun * 0.35,
       'CT1-SILO-LVL': 65.4 + (t * 0.0008) % 30,
       'CT1-SILO-TONS': 42500.0,
 
-      // CEMENT MILL
+      // ── CEMENT MILL & BALL MILL CIRCUIT ───────────────────────────────
       'CM2-FEED-CLINKER': cmRun * (148.0 + s * 4.0),
-      'CM2-FEED-GYPSUM': cmRun * (8.2 + s * 0.3),  // 5%
-      'CM2-FEED-FLYASH': cmRun * (38.8 + s * 1.2), // 20%
+      'CM2-FEED-GYPSUM': cmRun * (8.2 + s * 0.3),
+      'CM2-FEED-FLYASH': cmRun * (38.8 + s * 1.2),
       'CM2-FEED-TOT': cmRun * (195.0 + s * 5.0),
-      'CM2-PWR': cmRun * (4280.0 + s * 110.0),
+      'CM2-PWR': cmPwr,
       'CM2-CUR': cmRun * (418.0 + s * 12.0),
-      'CM2-JACKING-PR': 118.0 + s * 2.0,
+      'CM2-JACKING-PR': isMillOverload ? 138.0 : 118.0 + s * 2.0,
       'CM2-BEARING-TEMP': 54.5 + s * 1.2,
       'CM2-OUT-TEMP': 108.0 + s * 3.0,
       'CM2-SEP-SPD': cmRun * (245.0 + c * 3.0),
       'CM2-SEP-PWR': cmRun * (185.0 + c * 6.0),
       'CM2-FAN-SPD': cmRun * 980.0,
       'CM2-FAN-PWR': cmRun * (1650.0 + s * 40.0),
-      'CM2-BLAINE': 385.0 + s * 8.0, // Blaine fineness m2/kg
+      'CM2-BLAINE': 385.0 + s * 8.0,
+      'CM2-MILL-EAR': cmEar,
       'CM2-SILO1-LVL': 82.0 + (t * 0.001) % 15,
       'CM2-SILO2-LVL': 58.0 + (t * 0.0008) % 25,
 
-      // PACKING & DISPATCH
-      'PACK-ROTARY-SPD': 5.5, // RPM
+      // ── PACKING & DISPATCH ────────────────────────────────────────────
+      'PACK-ROTARY-SPD': 5.5,
       'PACK-BAGS-MIN': 85.0 + s * 4.0,
-      'PACK-BAG-WEIGHT': 50.1 + (Math.random() - 0.5) * 0.2, // 50kg bag
-      'PACK-BULK-FLOW': 180.0 + s * 10.0, // t/h bulk tanker loading
+      'PACK-BAG-WEIGHT': 50.1 + (Math.random() - 0.5) * 0.2,
+      'PACK-BULK-FLOW': 180.0 + s * 10.0,
 
-      // WHRS & PLANT TOTALS
-      'WHRS-SP-STEAM-FLOW': whrsRun * (14.2 + s * 0.5), // t/h
+      // ── WHRS & PLANT TOTALS ───────────────────────────────────────────
+      'WHRS-SP-STEAM-FLOW': whrsRun * (14.2 + s * 0.5),
       'WHRS-SP-STEAM-TEMP': whrsRun * (325.0 + s * 5.0),
       'WHRS-AQC-STEAM-FLOW': whrsRun * (18.5 + s * 0.6),
       'WHRS-AQC-STEAM-TEMP': whrsRun * (340.0 + s * 6.0),
-      'WHRS-GENERATION': whrsRun * (6450.0 + s * 120.0), // kW
+      'WHRS-GENERATION': whrsRun * (6450.0 + s * 120.0),
       'WHRS-TURBINE-MW': whrsRun * (6.45 + s * 0.12),
       'WHRS-VACUUM': 0.91 + s * 0.01,
-      'CPP-POWER': 8500.0 + c * 150.0, // 8.5 MW Captive power
-      'PLANT-TOTAL-POWER': 22400.0 + s * 350.0, // 22.4 MW
+      'CPP-POWER': 8500.0 + c * 150.0,
+      'PLANT-TOTAL-POWER': 22400.0 + s * 350.0,
       'PLANT-GRID-IMPORT': 7450.0 + s * 200.0,
-      'PLANT-SEC-KWH': 63.8 + s * 0.8, // kWh/ton clinker
+      'PLANT-SEC-KWH': 63.8 + s * 0.8,
     };
   }
 
   private evaluateAlarms() {
     const store = useScadaStore.getState();
     const tags = store.tags;
+    const scenario = store.activeScenario;
 
-    // Check ATEX Coal Mill O2 threshold (safety standard: max 8.0%)
+    if (scenario === 'TRAMP_METAL') {
+      store.addAlarm({
+        tag: 'CR-MD-01',
+        description: 'TRAMP METAL DETECTED on BC-102. Emergency Diverter Actuated!',
+        priority: 'CRITICAL',
+      });
+    }
+
+    if (scenario === 'MILL_OVERLOAD') {
+      store.addAlarm({
+        tag: 'CM2-MILL-01',
+        description: 'Ball Mill 1 Choked / High DP. Mill Ear Muffled (42%). Back off Feed!',
+        priority: 'CRITICAL',
+      });
+    }
+
+    if (scenario === 'KILN_OVERHEAT') {
+      store.addAlarm({
+        tag: 'KLN1-BZ-TEMP',
+        description: 'Burning Zone Pyrometer Over-Temperature (1492°C). High NOx Emitted!',
+        priority: 'HIGH',
+      });
+    }
+
+    // Standard safety limits
     if ((tags['CM1-O2-CONC'] || 0) > 7.5) {
       store.addAlarm({
         tag: 'CM1-O2-CONC',
@@ -546,21 +736,11 @@ class ScadaEngine {
       });
     }
 
-    // Check Kiln Shell Max Temp (> 390°C indicates brick spalling)
     if ((tags['KLN1-SHELL-SCAN-MAX'] || 0) > 380) {
       store.addAlarm({
         tag: 'KLN1-SHELL-SCAN-MAX',
         description: 'Shell Optical Scanner: High Spot detected on Sintering Ring',
         priority: 'HIGH',
-      });
-    }
-
-    // Check VRM Vibration
-    if ((tags['RM1-VRM-VIB'] || 0) > 4.2) {
-      store.addAlarm({
-        tag: 'RM1-VRM-VIB',
-        description: 'Raw Mill 1 Roller Hydropneumatic Vibration High',
-        priority: 'MEDIUM',
       });
     }
   }
@@ -569,10 +749,13 @@ class ScadaEngine {
     const store = useScadaStore.getState();
     if (action === 'START') {
       store.setEquipmentState(id, { status: 'RUNNING' });
+      scadaAudio.playStartMotor();
     } else if (action === 'STOP') {
       store.setEquipmentState(id, { status: 'STOPPED' });
+      scadaAudio.playStopMotor();
     } else if (action === 'RESET') {
       store.setEquipmentState(id, { status: 'STOPPED' });
+      scadaAudio.playClick();
     }
   }
 }

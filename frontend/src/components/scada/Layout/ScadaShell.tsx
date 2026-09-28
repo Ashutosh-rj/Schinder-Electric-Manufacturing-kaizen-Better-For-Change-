@@ -2,19 +2,35 @@ import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { useScadaStore } from '../../../store/scadaStore';
 import { normalizeArea } from '../../../pages/DigitalTwin';
+import { scadaAudio } from '../../../engine/scadaAudio';
+import { 
+  Volume2, VolumeX, AlertOctagon, CheckCircle2, 
+  FastForward, ShieldAlert, BellRing, Sparkles 
+} from 'lucide-react';
 
-const TopNav = ({ activeArea, setActiveArea }: { activeArea: string, setActiveArea: (a: string) => void }) => {
+const TopNav = ({ activeArea, setActiveArea }: { activeArea: string; setActiveArea: (a: string) => void }) => {
   const [time, setTime] = useState(new Date());
   const systemHealth = useScadaStore(s => s.systemHealth);
+  const isAudioEnabled = useScadaStore(s => s.isAudioEnabled);
+  const toggleAudio = useScadaStore(s => s.toggleAudio);
+  const activeScenario = useScadaStore(s => s.activeScenario);
+  const triggerScenario = useScadaStore(s => s.triggerScenario);
+  const resetScenario = useScadaStore(s => s.resetScenario);
+  const simSpeed = useScadaStore(s => s.simSpeed || 1);
+  const setSimSpeed = useScadaStore(s => s.setSimSpeed);
+  const alarms = useScadaStore(s => s.alarms);
+  const ackAlarm = useScadaStore(s => s.ackAlarm);
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  const unackedCritical = alarms.filter(a => a.active && !a.acknowledged && (a.priority === 'CRITICAL' || a.priority === 'HIGH'));
+
   const areas = [
-    { label: 'PLANT OVERVIEW (P&ID)', id: 'HOME' },
-    { label: '1. CRUSHER', id: 'CR' },
+    { label: 'PLANT OVERVIEW (3D / P&ID)', id: 'HOME' },
+    { label: '1. CRUSHER & RECLAIMER', id: 'CR' },
     { label: '2. RAW MILL (VRM)', id: 'RM1' },
     { label: '3. COAL MILL', id: 'CM1' },
     { label: '4. PREHEATER & KILN', id: 'KILN' },
@@ -27,8 +43,19 @@ const TopNav = ({ activeArea, setActiveArea }: { activeArea: string, setActiveAr
     { label: 'ALARMS & EVENTS', id: 'ALARMS' },
   ];
 
+  const handleTabClick = (id: string) => {
+    scadaAudio.playClick();
+    setActiveArea(id);
+  };
+
+  const handleAckAll = () => {
+    unackedCritical.forEach(a => ackAlarm(a.id));
+  };
+
   return (
     <div className="bg-[#0f172a] text-white flex flex-col border-b border-gray-700 select-none">
+      
+      {/* ── TOP DCS BANNER ─────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-4 py-1.5 text-xs border-b border-gray-800 bg-[#020617]">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
@@ -39,24 +66,114 @@ const TopNav = ({ activeArea, setActiveArea }: { activeArea: string, setActiveAr
           <span className="text-gray-400">OPERATOR: <span className="text-white">CCR LEAD CHIEF</span></span>
           <span className="text-gray-400">MODE: <span className="text-[#00e676] px-2 py-0.5 bg-[#00e676]/10 rounded border border-[#00e676]/30 font-bold">INDUSTRIAL DIGITAL TWIN • CLOSED LOOP</span></span>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="font-mono text-[#00ff00] font-bold">{format(time, 'dd-MMM-yyyy HH:mm:ss')}</span>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400">SYSTEM HEALTH:</span>
-            <span className="text-[#00ff00] font-bold">OPTIMAL</span>
-            <div className="w-2.5 h-2.5 rounded-full bg-[#00ff00] shadow-[0_0_8px_#00ff00] animate-pulse" />
+
+        <div className="flex items-center gap-3">
+          
+          {/* SIMULATION SPEED */}
+          <div className="flex items-center bg-[#111927] border border-gray-700 rounded px-1.5 py-0.5 text-[10px] font-mono">
+            <span className="text-gray-400 mr-1">SPEED:</span>
+            {[1, 2, 5].map(spd => (
+              <button
+                key={spd}
+                onClick={() => setSimSpeed(spd)}
+                className={`px-1.5 py-0.5 rounded ${
+                  simSpeed === spd 
+                    ? 'bg-emerald-600 text-white font-bold' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {spd}x
+              </button>
+            ))}
           </div>
+
+          {/* PLANT INCIDENT DRILL */}
+          <div className="flex items-center bg-[#111927] border border-gray-700 rounded px-2 py-0.5 text-[10px]">
+            <span className="text-gray-400 mr-1.5 font-bold uppercase">DRILL:</span>
+            <select
+              value={activeScenario || 'NORMAL'}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === 'NORMAL') resetScenario();
+                else triggerScenario(val);
+              }}
+              className="bg-transparent font-mono text-cyan-400 focus:outline-none cursor-pointer"
+            >
+              <option value="NORMAL" className="bg-[#111927] text-white">Normal Steady-State</option>
+              <option value="TRAMP_METAL" className="bg-[#111927] text-amber-400">Tramp Metal Detected (Crusher)</option>
+              <option value="MILL_OVERLOAD" className="bg-[#111927] text-rose-400">Ball Mill 1 Choked Overload</option>
+              <option value="KILN_OVERHEAT" className="bg-[#111927] text-purple-400">Kiln Burning Zone High Temp</option>
+            </select>
+          </div>
+
+          {/* AUDIO ENGINE TOGGLE */}
+          <button
+            onClick={toggleAudio}
+            className={`px-2.5 py-1 rounded flex items-center gap-1.5 font-mono text-[10px] font-bold border transition-all ${
+              isAudioEnabled 
+                ? 'bg-emerald-950/80 border-emerald-500 text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.3)]' 
+                : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+            }`}
+            title="Toggle Procedural Plant Acoustics & DCS Alarms"
+          >
+            {isAudioEnabled ? (
+              <>
+                <Volume2 size={13} className="animate-pulse" />
+                <span>SOUND ON</span>
+              </>
+            ) : (
+              <>
+                <VolumeX size={13} />
+                <span>SOUND OFF</span>
+              </>
+            )}
+          </button>
+
+          {/* CLOCK & HEALTH */}
+          <span className="font-mono text-[#00ff00] font-bold">{format(time, 'dd-MMM-yyyy HH:mm:ss')}</span>
+          <div className="flex items-center gap-1.5">
+            <div className={`w-2.5 h-2.5 rounded-full ${
+              unackedCritical.length > 0 
+                ? 'bg-red-500 shadow-[0_0_8px_red] animate-pulse' 
+                : 'bg-[#00ff00] shadow-[0_0_8px_#00ff00] animate-pulse'
+            }`} />
+            <span className={`font-bold ${unackedCritical.length > 0 ? 'text-red-400' : 'text-[#00ff00]'}`}>
+              {unackedCritical.length > 0 ? 'ALARM' : 'OPTIMAL'}
+            </span>
+          </div>
+
         </div>
       </div>
+
+      {/* ── CRITICAL UNACKNOWLEDGED ALARM BANNER (ISA-18.2) ────────── */}
+      {unackedCritical.length > 0 && (
+        <div className="bg-red-950/90 border-b border-red-500/80 px-4 py-1.5 flex items-center justify-between text-xs text-red-200 animate-pulse">
+          <div className="flex items-center gap-3">
+            <BellRing size={16} className="text-red-400 animate-bounce" />
+            <span className="font-black text-white">
+              {unackedCritical.length} UNACKNOWLEDGED CRITICAL ALARM{unackedCritical.length > 1 ? 'S' : ''}:
+            </span>
+            <span className="font-mono text-red-300">
+              {unackedCritical[0].tag} — {unackedCritical[0].description}
+            </span>
+          </div>
+          <button
+            onClick={handleAckAll}
+            className="px-3 py-0.5 bg-red-600 hover:bg-red-500 text-white font-black rounded text-[10px] uppercase tracking-wider transition-colors shadow"
+          >
+            ACKNOWLEDGE ALL
+          </button>
+        </div>
+      )}
       
-      {/* AREA NAVIGATION TABS */}
+      {/* ── AREA NAVIGATION TABS ────────────────────────────────────── */}
       <div className="flex overflow-x-auto text-xs font-bold bg-[#090d16] border-b border-gray-800 custom-scrollbar">
         {areas.map(a => {
           const isSelected = activeArea === a.id || normalizeArea(activeArea) === normalizeArea(a.id);
           return (
             <div 
               key={a.id} 
-              onClick={() => setActiveArea(a.id)}
+              onClick={() => handleTabClick(a.id)}
               className={`px-4 py-2 cursor-pointer border-r border-gray-800 whitespace-nowrap transition-colors ${
                 isSelected 
                   ? 'bg-[#1e293b] text-[#00ff00] border-b-2 border-b-[#00ff00] shadow-sm font-extrabold' 
@@ -68,6 +185,7 @@ const TopNav = ({ activeArea, setActiveArea }: { activeArea: string, setActiveAr
           );
         })}
       </div>
+
     </div>
   );
 };

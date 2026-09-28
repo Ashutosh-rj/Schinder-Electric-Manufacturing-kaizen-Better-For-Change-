@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { scadaAudio } from '../engine/scadaAudio';
 
 export type EquipmentState = 'RUNNING' | 'STOPPED' | 'STARTING' | 'TRIPPED' | 'FAULT' | 'MAINTENANCE';
 export type EquipmentMode = 'AUTO' | 'MANUAL' | 'LOCAL' | 'REMOTE';
@@ -28,7 +29,10 @@ interface ScadaStore {
   equipment: Record<string, Equipment>;
   alarms: Alarm[];
   systemHealth: 'ALL OK' | 'WARNING' | 'DEGRADED' | 'CRITICAL';
-  history: Record<string, { time: number, value: number }[]>;
+  history: Record<string, { time: number; value: number }[]>;
+  isAudioEnabled: boolean;
+  activeScenario: string | null;
+  simSpeed: number;
   
   // Actions
   setTag: (tagId: string, value: number) => void;
@@ -37,14 +41,43 @@ interface ScadaStore {
   addAlarm: (alarm: Omit<Alarm, 'id' | 'timestamp' | 'acknowledged' | 'active'>) => void;
   ackAlarm: (id: string) => void;
   clearInactiveAlarms: () => void;
+  toggleAudio: () => void;
+  triggerScenario: (scenarioId: string) => void;
+  resetScenario: () => void;
+  setSimSpeed: (speed: number) => void;
 }
 
-export const useScadaStore = create<ScadaStore>((set) => ({
+export const useScadaStore = create<ScadaStore>((set, get) => ({
   tags: {},
   equipment: {},
   alarms: [],
   systemHealth: 'ALL OK',
   history: {},
+  isAudioEnabled: false,
+  activeScenario: null,
+  simSpeed: 1,
+
+  toggleAudio: () => {
+    const next = !get().isAudioEnabled;
+    scadaAudio.init();
+    scadaAudio.setMuted(!next);
+    set({ isAudioEnabled: next });
+  },
+
+  triggerScenario: (scenarioId: string) => {
+    set({ activeScenario: scenarioId });
+    scadaAudio.playAlarm('CRITICAL');
+  },
+
+  resetScenario: () => {
+    set({ activeScenario: null });
+    scadaAudio.playAlarmAck();
+  },
+
+  setSimSpeed: (speed: number) => {
+    set({ simSpeed: speed });
+    scadaAudio.playClick();
+  },
 
   setTag: (tagId, value) => 
     set((state) => ({
@@ -93,15 +126,28 @@ export const useScadaStore = create<ScadaStore>((set) => ({
         active: true,
       };
       
-      return { alarms: [newAlarm, ...state.alarms].slice(0, 100) }; // Keep last 100
+      // Play audible alarm
+      scadaAudio.playAlarm(alarm.priority);
+
+      return { 
+        alarms: [newAlarm, ...state.alarms].slice(0, 100),
+        systemHealth: alarm.priority === 'CRITICAL' ? 'CRITICAL' : 'WARNING'
+      };
     }),
 
-  ackAlarm: (id) =>
-    set((state) => ({
-      alarms: state.alarms.map(a => 
+  ackAlarm: (id) => {
+    scadaAudio.playAlarmAck();
+    set((state) => {
+      const updated = state.alarms.map(a => 
         a.id === id ? { ...a, acknowledged: true } : a
-      )
-    })),
+      );
+      const remainingCritical = updated.filter(a => a.active && !a.acknowledged && a.priority === 'CRITICAL');
+      return {
+        alarms: updated,
+        systemHealth: remainingCritical.length > 0 ? 'CRITICAL' : 'ALL OK'
+      };
+    });
+  },
 
   clearInactiveAlarms: () =>
     set((state) => ({
