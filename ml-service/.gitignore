@@ -1,0 +1,53 @@
+# ML Service (Inference & Training) — .gitignore
+
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment files
+.env
+.env.*
+*.env
+!.env.example
+
+# Large Model weights, checkpoints & datasets
+models/*
+!models/.gitkeep
+*.h5
+*.pb
+*.onnx
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.safetensors
+*.bin
+*.ckpt
+*.tflite
+
+# Experiment tracking & Visualization
+runs/
+wandb/
+.tensorboard/
+lightning_logs/
+mlruns/
+ml_models/
+
+# Logs & temp files
+logs/*
+!logs/.gitkeep
+*.log
+*.tmp
+*.temp
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

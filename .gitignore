@@ -1,6 +1,7 @@
 # =====================================================================
 # KAIZEN INTELLIGENCE PLATFORM — .gitignore
 # Schneider Electric EcoStruxure & Industrial AI Platform
+# Monorepo: Root / Backend / Frontend / ML-Service / Simulator
 # =====================================================================
 
 # ── Operating System Files ──────────────────────────────────────────
@@ -14,8 +15,9 @@ Thumbs.db
 desktop.ini
 $RECYCLE.BIN/
 *.lnk
+.directory
 
-# ── IDEs, Editors & AI Agent Tooling ────────────────────────────────
+# ── IDEs, Editors & Developer Tools ─────────────────────────────────
 .idea/
 .vscode/
 *.swp
@@ -35,12 +37,43 @@ $RECYCLE.BIN/
 *.sln.docstates
 *.code-workspace
 
-# AI Agent & Assistant Artifacts
+# ── AI Agent Tooling & Assistant Artifacts ──────────────────────────
 .gemini/
 .antigravity/
 .system_generated/
 .cursor/
 .windsurf/
+.claude/
+.copilot/
+chat_history/
+*.patch
+
+# ── Environment & Secrets (Never commit credentials) ───────────────
+.env
+.env.*
+.env*.local
+*.env
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+*.id_rsa
+id_rsa*
+id_ed25519*
+service-account*.json
+service_account*.json
+credentials.json
+client_secret*.json
+secrets/
+.secrets/
+
+# Allow example environment templates
+!.env.example
+!.env*.example
+!.env.template
+!.env.sample
 
 # ── Python & Virtual Environments ───────────────────────────────────
 __pycache__/
@@ -59,6 +92,7 @@ venv.bak/
 virtualenv/
 pip-log.txt
 pip-delete-this-directory.txt
+pip-wheel-metadata/
 
 # Python packaging & build artifacts
 # (Use anchored or specific paths so frontend/src/lib is never ignored)
@@ -88,6 +122,9 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 .hypothesis/
+.pyre/
+.pytype/
+nosetests.xml
 
 # Jupyter Notebooks & Checkpoints
 .ipynb_checkpoints/
@@ -109,6 +146,7 @@ out/
 .pnpm-store/
 .vite/
 frontend/.vite/
+coverage/
 
 # Node logs
 npm-debug.log*
@@ -150,30 +188,23 @@ ml_models/
 ml-service/models/*
 !ml-service/models/.gitkeep
 
-# ── Environment & Secrets (Never commit credentials) ───────────────
-.env
-.env.*
-.env*.local
-*.env
-*.pem
-*.key
-*.cert
-*.crt
-*.pfx
-*.p12
-
-# Allow example environment templates
-!.env.example
-!.env*.example
-!.env.template
-
 # ── Databases, Docker Volumes & Persistent Local Storage ────────────
 *.sqlite
 *.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3-shm
+*.sqlite3-wal
 *.db
+*.db-shm
+*.db-wal
 *.rdb
+dump.rdb
+*.dump
+*.sql.dump
 postgres_data/
 timescale_data/
+timescaledb_data/
 redis_data/
 kafka_data/
 zookeeper_data/
@@ -181,14 +212,38 @@ zookeeper_logs/
 minio_data/
 grafana_data/
 prometheus_data/
+pgadmin_data/
+
+# ── Docker & Container Orchestration ────────────────────────────────
+docker-compose.override.yml
+docker-compose.override.yaml
+docker-compose.local.yml
+docker-compose.*.local.yml
+.docker/
+*.cid
+
+# ── Industrial, SCADA & OPC-UA Simulation ───────────────────────────
+pki/
+rejected/
+mosquitto_data/
+mosquitto.db
+*.pcap
+*.pcapng
 
 # ── Application Logs & Service Dumps ────────────────────────────────
 *.log
-logs/
-backend/logs/
+logs/*
+!logs/.gitkeep
+backend/logs/*
+!backend/logs/.gitkeep
 backend_logs/
-ml-service/logs/
-simulator/logs/
+ml-service/logs/*
+!ml-service/logs/.gitkeep
+simulator/logs/*
+!simulator/logs/.gitkeep
+*.pid
+*.seed
+*.pid.lock
 
 # ── Temporary & Scratch Files ───────────────────────────────────────
 temp.txt

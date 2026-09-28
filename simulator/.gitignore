@@ -1,0 +1,38 @@
+# Simulator (OPC-UA / Industrial Simulation) — .gitignore
+
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment files
+.env
+.env.*
+*.env
+!.env.example
+
+# OPC-UA certs & caches
+pki/
+rejected/
+
+# Logs & temp files
+logs/*
+!logs/.gitkeep
+*.log
+*.tmp
+*.temp
+
+# Network traces
+*.pcap
+*.pcapng
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
